@@ -5,6 +5,21 @@ import MentionMenu from "./MentionMenu";
 
 export type MentionMenuPosition = "above" | "below";
 
+/** Configuration for a single mention trigger */
+export interface MentionConfig {
+	/** The character that triggers the mention menu (e.g., "@", "#", "/") */
+	trigger: string;
+	/** The options to display in the menu for this trigger */
+	options: MentionOption[];
+	/** Position preference for this trigger's menu */
+	menuPosition?: MentionMenuPosition;
+	/** Whether to show the trigger character in the mention pill. Defaults to false. */
+	showTrigger?: boolean;
+}
+
+/** Default config when none provided - @ trigger with no options */
+const DEFAULT_CONFIG: MentionConfig[] = [{ trigger: "@", options: [] }];
+
 export interface PromptProps {
 	initialValue?: string;
 	onChange?: (value: string, mentions: SelectedMention[]) => void;
@@ -12,9 +27,8 @@ export interface PromptProps {
 	onMentionAdded?: (mention: SelectedMention) => void;
 	onMentionDeleted?: (mention: SelectedMention) => void;
 	placeholder?: string;
-	mentionTrigger?: string;
-	mentionOptions?: MentionOption[];
-	mentionMenuPosition?: MentionMenuPosition;
+	/** Configure mention triggers with their options and settings. Defaults to @ trigger with no options. */
+	mentionConfigs?: MentionConfig[];
 }
 
 const Prompt = (props: PromptProps) => {
@@ -25,20 +39,21 @@ const Prompt = (props: PromptProps) => {
 		onMentionAdded,
 		onMentionDeleted,
 		placeholder = "",
-		mentionTrigger = "@",
-		mentionOptions,
-		mentionMenuPosition = "below",
+		mentionConfigs = DEFAULT_CONFIG,
 	} = props;
 
 	const { ref, isEmpty, handlers, mentions } = useContentEditable({
 		initialValue,
-		mentionTrigger,
-		mentionOptions,
+		mentionConfigs,
 		onChange,
 		onEnter,
 		onMentionAdded,
 		onMentionDeleted,
 	});
+
+	// Get the menu position for the currently active trigger
+	const activeConfig = mentionConfigs.find(c => c.trigger === mentions.activeTrigger);
+	const activeMenuPosition = activeConfig?.menuPosition ?? "below";
 
 	return (
 		<div className="relative">
@@ -56,7 +71,7 @@ const Prompt = (props: PromptProps) => {
 			<MentionMenu
 				isOpen={mentions.menuState.isOpen}
 				caretRect={mentions.menuState.caretRect}
-				preferredPosition={mentionMenuPosition}
+				preferredPosition={activeMenuPosition}
 				options={mentions.filteredOptions}
 				selectedIndex={mentions.selectedIndex}
 				onSelect={mentions.selectOption}
@@ -69,4 +84,4 @@ const Prompt = (props: PromptProps) => {
 	);
 };
 
-export default Prompt;
+export default Prompt; 

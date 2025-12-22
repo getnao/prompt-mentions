@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import type { ReactNode } from "react";
 
 export type MentionItemType = 'item' | 'divider' | 'title';
@@ -23,18 +23,30 @@ export interface MentionMenuState {
 	caretRect: CaretRect;
 	searchText: string;
 	parentStack: string[];
+	activeTrigger: string;
+}
+
+/** Configuration for a single mention trigger */
+export interface MentionTriggerConfig {
+	trigger: string;
+	options: MentionOption[];
 }
 
 export interface UseMentionsOptions {
+	/** @deprecated Use configs instead */
 	trigger?: string;
+	/** @deprecated Use configs instead */
 	options?: MentionOption[] | undefined;
+	/** Multiple trigger configurations */
+	configs?: MentionTriggerConfig[];
 }
 
 export interface UseMentionsReturn {
 	menuState: MentionMenuState;
 	options: MentionOption[];
 	selectedIndex: number;
-	openMenu: (caretRect: CaretRect) => void;
+	activeTrigger: string;
+	openMenu: (caretRect: CaretRect, trigger: string) => void;
 	closeMenu: () => void;
 	updateSearch: (text: string) => void;
 	selectNext: () => void;
@@ -46,6 +58,10 @@ export interface UseMentionsReturn {
 	isInSubmenu: boolean;
 	currentMenuItems: MentionOption[];
 	setSelectedIndex: (index: number) => void;
+	/** Get options for a specific trigger */
+	getOptionsForTrigger: (trigger: string) => MentionOption[];
+	/** Get all configured triggers */
+	triggers: string[];
 }
 
 const DEFAULT_OPTIONS: MentionOption[] = [
@@ -134,35 +150,61 @@ const filterOptionsFlat = (options: MentionOption[], searchText: string): Mentio
 export function useMentions({
 	trigger = "@",
 	options = DEFAULT_OPTIONS,
+	configs,
 }: UseMentionsOptions = {}): UseMentionsReturn {
+	// Build configs map from either new configs prop or legacy props
+	const configsMap = useMemo(() => {
+		if (configs && configs.length > 0) {
+			const map = new Map<string, MentionOption[]>();
+			for (const config of configs) {
+				map.set(config.trigger, config.options);
+			}
+			return map;
+		}
+		// Legacy single trigger
+		return new Map([[trigger, options]]);
+	}, [configs, trigger, options]);
+
+	const triggers = useMemo(() => Array.from(configsMap.keys()), [configsMap]);
+
 	const [menuState, setMenuState] = useState<MentionMenuState>({
 		isOpen: false,
 		caretRect: { top: 0, left: 0, bottom: 0, height: 0 },
 		searchText: "",
 		parentStack: [],
+		activeTrigger: triggers[0] ?? "@",
 	});
 	const [selectedIndex, setSelectedIndex] = useState(0);
-	const optionsRef = useRef(options);
-	optionsRef.current = options;
+
+	// Get options for the active trigger
+	const activeOptions = configsMap.get(menuState.activeTrigger) ?? [];
+	const optionsRef = useRef(activeOptions);
+	optionsRef.current = activeOptions;
 
 	// Get current menu items based on parent stack
-	const currentMenuItems = getOptionsAtPath(options, menuState.parentStack);
+	const currentMenuItems = getOptionsAtPath(activeOptions, menuState.parentStack);
 
 	// Filter options when searching (only at root level, not in submenus)
 	// Search results are flattened - no nested structure
 	const filteredOptions = menuState.searchText && menuState.parentStack.length === 0
-		? filterOptionsFlat(options, menuState.searchText)
+		? filterOptionsFlat(activeOptions, menuState.searchText)
 		: currentMenuItems;
 
-	const openMenu = useCallback((caretRect: CaretRect) => {
+	const getOptionsForTrigger = useCallback((t: string): MentionOption[] => {
+		return configsMap.get(t) ?? [];
+	}, [configsMap]);
+
+	const openMenu = useCallback((caretRect: CaretRect, activeTrigger: string) => {
+		const triggerOptions = configsMap.get(activeTrigger) ?? [];
 		setMenuState({
 			isOpen: true,
 			caretRect,
 			searchText: "",
 			parentStack: [],
+			activeTrigger,
 		});
-		setSelectedIndex(findFirstSelectableIndex(options));
-	}, [options]);
+		setSelectedIndex(findFirstSelectableIndex(triggerOptions));
+	}, [configsMap]);
 
 	const closeMenu = useCallback(() => {
 		setMenuState((prev) => ({
@@ -175,16 +217,18 @@ export function useMentions({
 	}, []);
 
 	const updateSearch = useCallback((text: string) => {
-		setMenuState((prev) => ({
-			...prev,
-			searchText: text,
-			// Reset to root when searching
-			parentStack: [],
-		}));
-		// Find first selectable item in filtered results
-		const filtered = text ? filterOptionsFlat(options, text) : options;
-		setSelectedIndex(findFirstSelectableIndex(filtered));
-	}, [options]);
+		setMenuState((prev) => {
+			const opts = configsMap.get(prev.activeTrigger) ?? [];
+			const filtered = text ? filterOptionsFlat(opts, text) : opts;
+			setSelectedIndex(findFirstSelectableIndex(filtered));
+			return {
+				...prev,
+				searchText: text,
+				// Reset to root when searching
+				parentStack: [],
+			};
+		});
+	}, [configsMap]);
 
 	const selectNext = useCallback(() => {
 		setSelectedIndex((prev) => {
@@ -219,8 +263,9 @@ export function useMentions({
 		setMenuState((prev) => {
 			if (prev.parentStack.length === 0) return prev;
 
+			const opts = configsMap.get(prev.activeTrigger) ?? [];
 			const newStack = prev.parentStack.slice(0, -1);
-			const parentOptions = getOptionsAtPath(options, newStack);
+			const parentOptions = getOptionsAtPath(opts, newStack);
 			const parentId = prev.parentStack[prev.parentStack.length - 1];
 			const parentIndex = parentOptions.findIndex(opt => opt.id === parentId);
 
@@ -232,14 +277,15 @@ export function useMentions({
 				parentStack: newStack,
 			};
 		});
-	}, [options]);
+	}, [configsMap]);
 
 	const isInSubmenu = menuState.parentStack.length > 0;
 
 	return {
 		menuState,
-		options,
+		options: activeOptions,
 		selectedIndex,
+		activeTrigger: menuState.activeTrigger,
 		openMenu,
 		closeMenu,
 		updateSearch,
@@ -252,6 +298,8 @@ export function useMentions({
 		isInSubmenu,
 		currentMenuItems,
 		setSelectedIndex,
+		getOptionsForTrigger,
+		triggers,
 	};
 }
 

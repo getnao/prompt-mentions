@@ -51,10 +51,17 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// Default options for simple stories
+const defaultOptions: MentionOption[] = [
+	{ id: 'john-doe', label: 'John Doe' },
+	{ id: 'jane-smith', label: 'Jane Smith' },
+];
+
 export const Default: Story = {
 	name: 'Default (Type @ to mention)',
 	args: {
 		placeholder: 'Type @ to mention someone...',
+		mentionConfigs: [{ trigger: '@', options: defaultOptions }],
 	},
 };
 
@@ -62,10 +69,13 @@ export const WithCustomMentionOptions: Story = {
 	name: 'Custom Mention Options',
 	args: {
 		placeholder: 'Type @ to mention...',
-		mentionOptions: [
-			{ id: 'alice', label: 'Alice Johnson' },
-			{ id: 'bob', label: 'Bob Smith' },
-		],
+		mentionConfigs: [{
+			trigger: '@',
+			options: [
+				{ id: 'alice', label: 'Alice Johnson' },
+				{ id: 'bob', label: 'Bob Smith' },
+			],
+		}],
 	},
 };
 
@@ -81,7 +91,7 @@ export const WithIcons: Story = {
 	name: 'With Icons',
 	args: {
 		placeholder: 'Type @ to mention with icons...',
-		mentionOptions: optionsWithIcons,
+		mentionConfigs: [{ trigger: '@', options: optionsWithIcons }],
 	},
 };
 
@@ -100,7 +110,7 @@ export const WithDividersAndTitles: Story = {
 	name: 'With Dividers and Titles',
 	args: {
 		placeholder: 'Type @ to see sections...',
-		mentionOptions: optionsWithDividersAndTitles,
+		mentionConfigs: [{ trigger: '@', options: optionsWithDividersAndTitles }],
 	},
 };
 
@@ -157,7 +167,7 @@ export const WithNestedMenus: Story = {
 	name: 'With Nested Menus (Tab to enter, Esc to go back)',
 	args: {
 		placeholder: 'Type @ - use Tab to enter submenus, Esc to go back...',
-		mentionOptions: nestedOptions,
+		mentionConfigs: [{ trigger: '@', options: nestedOptions }],
 	},
 };
 
@@ -167,27 +177,27 @@ export const Comparison: Story = {
 		<div className="flex flex-col gap-8">
 			<div>
 				<h3 className="text-sm font-medium text-gray-600 mb-2">Default (Type @ to mention)</h3>
-				<Prompt placeholder="Type @ to mention someone..." />
+				<Prompt placeholder="Type @ to mention someone..." mentionConfigs={[{ trigger: '@', options: defaultOptions }]} />
 			</div>
 			<div>
 				<h3 className="text-sm font-medium text-gray-600 mb-2">With Custom Mention Trigger (#)</h3>
-				<Prompt placeholder="Type # to mention someone..." mentionTrigger="#" />
+				<Prompt placeholder="Type # to mention someone..." mentionConfigs={[{ trigger: '#', options: defaultOptions }]} />
 			</div>
 			<div>
 				<h3 className="text-sm font-medium text-gray-600 mb-2">With Initial Value (mention rendered as pill)</h3>
-				<Prompt initialValue="Hello, @[John Doe]!" />
+				<Prompt initialValue="Hello, @[John Doe]!" mentionConfigs={[{ trigger: '@', options: defaultOptions }]} />
 			</div>
 			<div>
 				<h3 className="text-sm font-medium text-gray-600 mb-2">Without Placeholder</h3>
-				<Prompt placeholder="" />
+				<Prompt placeholder="" mentionConfigs={[{ trigger: '@', options: defaultOptions }]} />
 			</div>
 			<div>
 				<h3 className="text-sm font-medium text-gray-600 mb-2">With Nested Menus (Tab to enter, Esc to go back)</h3>
-				<Prompt placeholder="Type @ to browse nested menus..." mentionOptions={nestedOptions} />
+				<Prompt placeholder="Type @ to browse nested menus..." mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />
 			</div>
 			<div>
 				<h3 className="text-sm font-medium text-gray-600 mb-2">Menu Position Above (with smart fallback)</h3>
-				<Prompt placeholder="Type @ - menu appears above..." mentionOptions={nestedOptions} mentionMenuPosition="above" />
+				<Prompt placeholder="Type @ - menu appears above..." mentionConfigs={[{ trigger: '@', options: nestedOptions, menuPosition: 'above' }]} />
 			</div>
 		</div>
 	),
@@ -196,25 +206,28 @@ export const Comparison: Story = {
 export const WithPlaceholder: Story = {
 	args: {
 		placeholder: 'Type @ to mention someone...',
+		mentionConfigs: [{ trigger: '@', options: defaultOptions }],
 	},
 };
 
 export const WithCustomMentionTrigger: Story = {
 	args: {
-		mentionTrigger: '#',
 		placeholder: 'Type # to mention someone...',
+		mentionConfigs: [{ trigger: '#', options: defaultOptions }],
 	},
 };
 
 export const WithInitialValue: Story = {
 	args: {
 		initialValue: 'Hello, @[John Doe]!',
+		mentionConfigs: [{ trigger: '@', options: defaultOptions }],
 	},
 };
 
 export const WithoutPlaceholder: Story = {
 	args: {
 		placeholder: '',
+		mentionConfigs: [{ trigger: '@', options: defaultOptions }],
 	},
 };
 
@@ -222,8 +235,7 @@ export const MenuPositionAbove: Story = {
 	name: 'Menu Position Above',
 	args: {
 		placeholder: 'Type @ to see menu above...',
-		mentionOptions: nestedOptions,
-		mentionMenuPosition: 'above',
+		mentionConfigs: [{ trigger: '@', options: nestedOptions, menuPosition: 'above' }],
 	},
 	parameters: {
 		docs: {
@@ -238,8 +250,7 @@ export const MenuPositionBelow: Story = {
 	name: 'Menu Position Below (Default)',
 	args: {
 		placeholder: 'Type @ to see menu below...',
-		mentionOptions: nestedOptions,
-		mentionMenuPosition: 'below',
+		mentionConfigs: [{ trigger: '@', options: nestedOptions, menuPosition: 'below' }],
 	},
 	parameters: {
 		docs: {
@@ -277,7 +288,7 @@ const CallbackShowcase = () => {
 				</h3>
 				<Prompt
 					placeholder="Type @ to mention, press Enter to see onEnter..."
-					mentionOptions={showcaseOptions}
+					mentionConfigs={[{ trigger: '@', options: showcaseOptions }]}
 					onChange={(value, mentions) => {
 						setOnChangeValue({ value, mentions });
 						addToLog('onChange', { value, mentions });
@@ -424,6 +435,168 @@ export const CallbacksShowcase: Story = {
 		docs: {
 			description: {
 				story: 'This story demonstrates the callback values from onChange, onEnter, onMentionAdded, and onMentionDeleted. Interact with the prompt to see the callback data in real-time.',
+			},
+		},
+	},
+};
+
+// Multiple triggers configuration
+const HashtagIcon = () => (
+	<svg viewBox="0 0 20 20" fill="currentColor">
+		<path fillRule="evenodd" d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.243a1 1 0 11-1.94-.486L10.47 14H7.53l-.56 2.243a1 1 0 01-1.94-.486L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.94l1-4H9.03z" clipRule="evenodd" />
+	</svg>
+);
+
+const SlashIcon = () => (
+	<svg viewBox="0 0 20 20" fill="currentColor">
+		<path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 01-1.898-.632l4-12a1 1 0 011.265-.633z" clipRule="evenodd" />
+	</svg>
+);
+
+const peopleOptions: MentionOption[] = [
+	{ id: 'alice', label: 'Alice Johnson', icon: <UserIcon /> },
+	{ id: 'bob', label: 'Bob Smith', icon: <UserIcon /> },
+	{ id: 'carol', label: 'Carol White', icon: <UserIcon /> },
+];
+
+const tagOptions: MentionOption[] = [
+	{ id: 'urgent', label: 'urgent', icon: <HashtagIcon /> },
+	{ id: 'bug', label: 'bug', icon: <HashtagIcon /> },
+	{ id: 'feature', label: 'feature', icon: <HashtagIcon /> },
+	{ id: 'docs', label: 'docs', icon: <HashtagIcon /> },
+];
+
+const commandOptions: MentionOption[] = [
+	{ id: 'help', label: 'help', icon: <SlashIcon /> },
+	{ id: 'search', label: 'search', icon: <SlashIcon /> },
+	{ id: 'clear', label: 'clear', icon: <SlashIcon /> },
+	{ id: 'settings', label: 'settings', icon: <SlashIcon /> },
+];
+
+export const MultipleTriggers: Story = {
+	name: 'Multiple Triggers (@, #, /)',
+	render: () => (
+		<div className="flex flex-col gap-4">
+			<div className="text-sm text-gray-600 mb-2">
+				<p className="font-medium mb-1">Try these triggers:</p>
+				<ul className="list-disc list-inside space-y-1">
+					<li><code className="bg-gray-100 px-1 rounded">@</code> - Mention people</li>
+					<li><code className="bg-gray-100 px-1 rounded">#</code> - Add tags</li>
+					<li><code className="bg-gray-100 px-1 rounded">/</code> - Run commands</li>
+				</ul>
+			</div>
+			<Prompt
+				placeholder="Type @, #, or / to see different menus..."
+				mentionConfigs={[
+					{ trigger: '@', options: peopleOptions, menuPosition: 'below' },
+					{ trigger: '#', options: tagOptions, menuPosition: 'below' },
+					{ trigger: '/', options: commandOptions, menuPosition: 'above' },
+				]}
+			/>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story: 'Configure multiple trigger characters, each with its own set of options and menu position. This example shows @ for people, # for tags, and / for commands.',
+			},
+		},
+	},
+};
+
+// Multiple triggers showcase with callbacks
+const MultiTriggerShowcase = () => {
+	const [events, setEvents] = useState<{ type: string; data: unknown; time: Date }[]>([]);
+
+	const addEvent = (type: string, data: unknown) => {
+		setEvents(prev => [{ type, data, time: new Date() }, ...prev].slice(0, 8));
+	};
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="text-sm text-gray-600 mb-2">
+				<p className="font-medium mb-1">Multi-trigger demo with event tracking:</p>
+				<p>Notice how each mention includes its trigger character in the callback data.</p>
+			</div>
+			<Prompt
+				placeholder="Type @alice, #bug, or /help..."
+				mentionConfigs={[
+					{ trigger: '@', options: peopleOptions },
+					{ trigger: '#', options: tagOptions },
+					{ trigger: '/', options: commandOptions, menuPosition: 'above' },
+				]}
+				onChange={(value, mentions) => addEvent('onChange', { value, mentions })}
+				onMentionAdded={(mention) => addEvent('onMentionAdded', mention)}
+				onMentionDeleted={(mention) => addEvent('onMentionDeleted', mention)}
+			/>
+
+			{events.length > 0 && (
+				<div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+					<h4 className="text-xs font-semibold text-gray-700 mb-2">Recent Events:</h4>
+					<div className="space-y-1.5 max-h-48 overflow-auto">
+						{events.map((evt, i) => (
+							<div key={i} className="text-xs font-mono bg-white p-2 rounded border border-gray-100 flex gap-2">
+								<span className="text-gray-400 shrink-0">{evt.time.toLocaleTimeString()}</span>
+								<span className={`font-semibold shrink-0 ${evt.type === 'onMentionAdded' ? 'text-green-600' :
+									evt.type === 'onMentionDeleted' ? 'text-red-600' : 'text-blue-600'
+									}`}>{evt.type}</span>
+								<span className="text-gray-600 truncate">{JSON.stringify(evt.data)}</span>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+};
+
+export const MultipleTriggersWithCallbacks: Story = {
+	name: 'Multiple Triggers with Callbacks',
+	render: () => <MultiTriggerShowcase />,
+	parameters: {
+		docs: {
+			description: {
+				story: 'Shows how callbacks include the trigger character for each mention, making it easy to distinguish between different mention types.',
+			},
+		},
+	},
+};
+
+// Hidden trigger showcase
+export const HiddenTrigger: Story = {
+	name: 'Hidden Trigger (showTrigger: false)',
+	render: () => (
+		<div className="flex flex-col gap-6">
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">With Trigger Shown (default)</h3>
+				<Prompt
+					placeholder="Type @ to mention..."
+					mentionConfigs={[{ trigger: '@', options: peopleOptions, showTrigger: true }]}
+				/>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Without Trigger Shown</h3>
+				<Prompt
+					placeholder="Type @ to mention (trigger hidden)..."
+					mentionConfigs={[{ trigger: '@', options: peopleOptions, showTrigger: false }]}
+				/>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Mixed - @ shows trigger, # hides it</h3>
+				<Prompt
+					placeholder="Type @ or #..."
+					mentionConfigs={[
+						{ trigger: '@', options: peopleOptions, showTrigger: true },
+						{ trigger: '#', options: tagOptions, showTrigger: false },
+					]}
+				/>
+			</div>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story: 'The `showTrigger` option controls whether the trigger character (like @) appears in the mention pill. When set to `false`, mentions display as just the label without the trigger prefix.',
 			},
 		},
 	},

@@ -1,6 +1,17 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import Prompt from './Prompt';
+import type { MentionConfig } from './Prompt';
+import type { MentionOption } from '../../hooks/useMentions';
+
+// Default options used in most tests
+const defaultOptions: MentionOption[] = [
+	{ id: 'john-doe', label: 'John Doe' },
+	{ id: 'jane-smith', label: 'Jane Smith' },
+];
+
+// Default config for tests
+const defaultConfig: MentionConfig[] = [{ trigger: '@', options: defaultOptions }];
 
 afterEach(() => {
 	cleanup();
@@ -29,26 +40,26 @@ function simulateTypingWithCursor(editableDiv: Element, text: string) {
 
 describe('Prompt', () => {
 	it('renders with custom placeholder', () => {
-		render(<Prompt placeholder="Type @ to mention someone..." />);
+		render(<Prompt placeholder="Type @ to mention someone..." mentionConfigs={defaultConfig} />);
 		expect(screen.getByText('Type @ to mention someone...')).toBeInTheDocument();
 	});
 
 	it('renders with initial value', () => {
-		const { container } = render(<Prompt initialValue="Hello, @[John Doe]!" />);
+		const { container } = render(<Prompt initialValue="Hello, @[John Doe]!" mentionConfigs={defaultConfig} />);
 		// Mention should be rendered as a pill with data-mention attribute
 		const mentionPill = container.querySelector('[data-mention="John Doe"]');
 		expect(mentionPill).toBeInTheDocument();
-		expect(mentionPill?.textContent).toBe('@John Doe');
+		expect(mentionPill?.textContent).toBe('John Doe');
 	});
 
 	it('hides placeholder when initial value is provided', () => {
-		render(<Prompt initialValue="Some text" placeholder="My placeholder" />);
+		render(<Prompt initialValue="Some text" placeholder="My placeholder" mentionConfigs={defaultConfig} />);
 		expect(screen.queryByText('My placeholder')).not.toBeInTheDocument();
 	});
 
 	it('calls onChange when content is edited', () => {
 		const handleChange = vi.fn();
-		const { container } = render(<Prompt onChange={handleChange} />);
+		const { container } = render(<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />);
 
 		const editableDiv = container.querySelector('[contenteditable="true"]')!;
 		editableDiv.textContent = 'Hello world';
@@ -58,7 +69,7 @@ describe('Prompt', () => {
 	});
 
 	it('hides placeholder after typing', () => {
-		const { container } = render(<Prompt placeholder="Custom placeholder" />);
+		const { container } = render(<Prompt placeholder="Custom placeholder" mentionConfigs={defaultConfig} />);
 
 		expect(screen.getByText('Custom placeholder')).toBeInTheDocument();
 
@@ -70,7 +81,7 @@ describe('Prompt', () => {
 	});
 
 	it('shows placeholder when content is cleared', () => {
-		const { container } = render(<Prompt placeholder="Unique placeholder" />);
+		const { container } = render(<Prompt placeholder="Unique placeholder" mentionConfigs={defaultConfig} />);
 
 		const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -86,7 +97,7 @@ describe('Prompt', () => {
 	});
 
 	it('treats non-breaking space as empty', () => {
-		const { container } = render(<Prompt placeholder="Nbsp placeholder" />);
+		const { container } = render(<Prompt placeholder="Nbsp placeholder" mentionConfigs={defaultConfig} />);
 
 		const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -98,7 +109,7 @@ describe('Prompt', () => {
 	});
 
 	it('renders without placeholder when empty string provided', () => {
-		const { container } = render(<Prompt placeholder="" />);
+		const { container } = render(<Prompt placeholder="" mentionConfigs={defaultConfig} />);
 		const editableDiv = container.querySelector('[contenteditable="true"]');
 		expect(editableDiv).toBeInTheDocument();
 	});
@@ -106,7 +117,7 @@ describe('Prompt', () => {
 	describe('Enter Key Behavior', () => {
 		it('calls onEnter with current value when pressing Enter', () => {
 			const handleEnter = vi.fn();
-			const { container } = render(<Prompt onEnter={handleEnter} />);
+			const { container } = render(<Prompt onEnter={handleEnter} mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'Hello world';
@@ -120,18 +131,18 @@ describe('Prompt', () => {
 		it('calls onEnter with serialized mention format', () => {
 			const handleEnter = vi.fn();
 			// Using id format in initial value - will use the default options to find the label
-			const { container } = render(<Prompt initialValue="Hi @[john-doe]!" onEnter={handleEnter} />);
+			const { container } = render(<Prompt initialValue="Hi @[john-doe]!" onEnter={handleEnter} mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			fireEvent.keyDown(editableDiv, { key: 'Enter' });
 
 			// Default options have { id: "john-doe", label: "John Doe" }
 			// The mention should be found by id and display with the label
-			expect(handleEnter).toHaveBeenCalledWith('Hi @[john-doe]!', [{ id: 'john-doe', label: 'john-doe' }]);
+			expect(handleEnter).toHaveBeenCalledWith('Hi @[john-doe]!', [{ id: 'john-doe', label: 'John Doe', trigger: '@' }]);
 		});
 
 		it('does not insert newline when pressing Enter', () => {
-			const { container } = render(<Prompt />);
+			const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'Hello';
@@ -146,7 +157,7 @@ describe('Prompt', () => {
 
 		it('does not call onEnter when pressing Shift+Enter', () => {
 			const handleEnter = vi.fn();
-			const { container } = render(<Prompt onEnter={handleEnter} />);
+			const { container } = render(<Prompt onEnter={handleEnter} mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'Hello';
@@ -159,7 +170,7 @@ describe('Prompt', () => {
 
 		it('does not call onEnter when Enter is pressed with mention menu open', () => {
 			const handleEnter = vi.fn();
-			const { container } = render(<Prompt onEnter={handleEnter} />);
+			const { container } = render(<Prompt onEnter={handleEnter} mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			// Type @ to open mention menu
@@ -181,7 +192,7 @@ describe('Prompt', () => {
 	describe('Undo/Redo', () => {
 		it('undoes text changes with Ctrl+Z', () => {
 			const handleChange = vi.fn();
-			const { container } = render(<Prompt onChange={handleChange} />);
+			const { container } = render(<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			// Type first text
@@ -203,7 +214,7 @@ describe('Prompt', () => {
 			const originalPlatform = navigator.platform;
 			Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });
 
-			const { container } = render(<Prompt />);
+			const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'First';
@@ -220,7 +231,7 @@ describe('Prompt', () => {
 		});
 
 		it('redoes text changes with Ctrl+Shift+Z', () => {
-			const { container } = render(<Prompt />);
+			const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'Hello';
@@ -239,7 +250,7 @@ describe('Prompt', () => {
 		});
 
 		it('redoes text changes with Ctrl+Y', () => {
-			const { container } = render(<Prompt />);
+			const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'First';
@@ -258,7 +269,7 @@ describe('Prompt', () => {
 		});
 
 		it('clears redo history when new text is typed after undo', () => {
-			const { container } = render(<Prompt />);
+			const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'First';
@@ -281,7 +292,7 @@ describe('Prompt', () => {
 		});
 
 		it('does nothing when undoing at the beginning of history', () => {
-			const { container } = render(<Prompt />);
+			const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'Only change';
@@ -297,7 +308,7 @@ describe('Prompt', () => {
 		});
 
 		it('does nothing when redoing at the end of history', () => {
-			const { container } = render(<Prompt />);
+			const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			editableDiv.textContent = 'Some text';
@@ -309,7 +320,7 @@ describe('Prompt', () => {
 		});
 
 		it('updates isEmpty state correctly during undo/redo', () => {
-			const { container } = render(<Prompt placeholder="Enter text" />);
+			const { container } = render(<Prompt placeholder="Enter text" mentionConfigs={defaultConfig} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			// Initially shows placeholder
@@ -333,7 +344,7 @@ describe('Prompt', () => {
 	describe('Mentions', () => {
 		describe('Menu Display', () => {
 			it('opens mention menu when typing trigger character', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Menu should not be visible initially
@@ -348,7 +359,7 @@ describe('Prompt', () => {
 			});
 
 			it('opens menu when trigger is preceded by space', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, 'Hello @');
@@ -357,7 +368,7 @@ describe('Prompt', () => {
 			});
 
 			it('does not open menu when trigger is part of a word', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, 'email@');
@@ -366,7 +377,7 @@ describe('Prompt', () => {
 			});
 
 			it('filters options based on search text', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@Jo');
@@ -377,7 +388,7 @@ describe('Prompt', () => {
 			});
 
 			it('shows nothing when search text matches none', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// First open with just @
@@ -389,7 +400,7 @@ describe('Prompt', () => {
 			});
 
 			it('closes menu when pressing Escape', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -401,7 +412,7 @@ describe('Prompt', () => {
 			});
 
 			it('closes menu when cursor moves away from trigger', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -414,7 +425,7 @@ describe('Prompt', () => {
 			});
 
 			it('closes menu when trigger is deleted via backspace (if trigger is first character)', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -427,7 +438,7 @@ describe('Prompt', () => {
 			});
 
 			it('closes menu when trigger is deleted via Cmd+A and Backspace', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@j');
@@ -443,7 +454,7 @@ describe('Prompt', () => {
 			});
 
 			it('closes menu when trigger is deleted via backspace (if trigger is not first character)', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, 'Hello @');
@@ -458,7 +469,7 @@ describe('Prompt', () => {
 			it('closes menu on Cmd+A (select all) and reopens when navigating back to trigger', async () => {
 				vi.useFakeTimers();
 
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -508,7 +519,7 @@ describe('Prompt', () => {
 			});
 
 			it('closes menu when cursor moves left with ArrowLeft', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Type "hello @" then trigger menu
@@ -540,7 +551,7 @@ describe('Prompt', () => {
 			});
 
 			it('preserves search filter when navigating within search text with ArrowLeft', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Type "@Jo" to filter - only John Doe should match, not Jane Smith
@@ -578,7 +589,7 @@ describe('Prompt', () => {
 			});
 
 			it('updates search filter when deleting characters with Backspace', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Type "@Jo" to filter - only John Doe should match
@@ -618,7 +629,7 @@ describe('Prompt', () => {
 			});
 
 			it('closes menu when clicking elsewhere in the text', async () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Type "hello @"
@@ -655,7 +666,7 @@ describe('Prompt', () => {
 
 		describe('Menu Navigation', () => {
 			it('navigates down with ArrowDown', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -673,7 +684,7 @@ describe('Prompt', () => {
 			});
 
 			it('navigates up with ArrowUp', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -689,7 +700,7 @@ describe('Prompt', () => {
 			});
 
 			it('wraps around when navigating past the end', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -707,7 +718,7 @@ describe('Prompt', () => {
 		describe('Mention Insertion', () => {
 			it('inserts mention when pressing Enter', () => {
 				const handleChange = vi.fn();
-				const { container } = render(<Prompt onChange={handleChange} />);
+				const { container } = render(<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -716,14 +727,14 @@ describe('Prompt', () => {
 				// Should have a mention pill
 				const mentionPill = container.querySelector('[data-mention="John Doe"]');
 				expect(mentionPill).toBeInTheDocument();
-				expect(mentionPill?.textContent).toBe('@John Doe');
+				expect(mentionPill?.textContent).toBe('John Doe');
 
 				// Menu should close
 				expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
 			});
 
 			it('inserts mention when pressing Tab', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -734,7 +745,7 @@ describe('Prompt', () => {
 			});
 
 			it('inserts selected mention after navigation', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -747,7 +758,7 @@ describe('Prompt', () => {
 
 			it('calls onChange with serialized mention format', () => {
 				const handleChange = vi.fn();
-				const { container } = render(<Prompt onChange={handleChange} />);
+				const { container } = render(<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -758,7 +769,7 @@ describe('Prompt', () => {
 			});
 
 			it('inserts mention by clicking on option', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -773,7 +784,7 @@ describe('Prompt', () => {
 
 			it('adds space after inserted mention', () => {
 				const handleChange = vi.fn();
-				const { container } = render(<Prompt onChange={handleChange} />);
+				const { container } = render(<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -786,7 +797,7 @@ describe('Prompt', () => {
 
 		describe('Multiple Mentions', () => {
 			it('preserves first mention when inserting second', () => {
-				const { container } = render(<Prompt initialValue="Hello @[John Doe] and " />);
+				const { container } = render(<Prompt initialValue="Hello @[John Doe] and " mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Verify first mention exists
@@ -841,7 +852,7 @@ describe('Prompt', () => {
 
 		describe('Custom Configuration', () => {
 			it('uses custom trigger character', () => {
-				const { container } = render(<Prompt mentionTrigger="#" />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '#', options: defaultOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// @ should not open menu
@@ -859,7 +870,7 @@ describe('Prompt', () => {
 					{ id: 'bob', label: 'Bob' },
 				];
 
-				const { container } = render(<Prompt mentionOptions={customOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: customOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -876,8 +887,7 @@ describe('Prompt', () => {
 				const handleChange = vi.fn();
 				const { container } = render(
 					<Prompt
-						mentionTrigger="#"
-						mentionOptions={[{ id: 'tag1', label: 'important' }]}
+						mentionConfigs={[{ trigger: '#', options: [{ id: 'tag1', label: 'important' }] }]}
 						onChange={handleChange}
 					/>
 				);
@@ -888,7 +898,7 @@ describe('Prompt', () => {
 
 				const pill = container.querySelector('[data-mention="important"]');
 				expect(pill).toBeInTheDocument();
-				expect(pill?.textContent).toBe('#important');
+				expect(pill?.textContent).toBe('important');
 				// Uses id (tag1) in serialized format
 				expect(handleChange).toHaveBeenCalledWith('#[tag1] ', expect.any(Array));
 			});
@@ -896,7 +906,7 @@ describe('Prompt', () => {
 
 		describe('Mention Deletion', () => {
 			it('renders mention from initial value as non-editable pill', () => {
-				const { container } = render(<Prompt initialValue="@[John Doe]" />);
+				const { container } = render(<Prompt initialValue="@[John Doe]" mentionConfigs={defaultConfig} />);
 
 				const mentionPill = container.querySelector('[data-mention="John Doe"]');
 				expect(mentionPill).toBeInTheDocument();
@@ -937,7 +947,7 @@ describe('Prompt', () => {
 			}
 
 			it('selects entire mention as single unit with Shift+Left from end', () => {
-				const { container } = render(<Prompt initialValue="hello @[John Doe]" />);
+				const { container } = render(<Prompt initialValue="hello @[John Doe]" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at the end
@@ -947,11 +957,11 @@ describe('Prompt', () => {
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
 
 				// The selection should be "@John Doe" (the display text of the mention)
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 			});
 
 			it('extends selection past mention with second Shift+Left', () => {
-				const { container } = render(<Prompt initialValue="hello @[John Doe]" />);
+				const { container } = render(<Prompt initialValue="hello @[John Doe]" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at the end
@@ -959,15 +969,15 @@ describe('Prompt', () => {
 
 				// Press Shift+Left once to select mention
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 
 				// Press Shift+Left again to extend selection by one character (the space)
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe(' @John Doe');
+				expect(getSelectionText()).toBe(' John Doe');
 			});
 
 			it('selects mention as single unit when mention is at start with Shift+Right', () => {
-				const { container } = render(<Prompt initialValue="@[John Doe] hello" />);
+				const { container } = render(<Prompt initialValue="@[John Doe] hello" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at the start
@@ -976,11 +986,11 @@ describe('Prompt', () => {
 				// Press Shift+Right once - should select the entire mention
 				fireEvent.keyDown(editableDiv, { key: 'ArrowRight', shiftKey: true });
 
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 			});
 
 			it('extends selection past mention with second Shift+Right', () => {
-				const { container } = render(<Prompt initialValue="@[John Doe] hello" />);
+				const { container } = render(<Prompt initialValue="@[John Doe] hello" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at the start
@@ -988,15 +998,15 @@ describe('Prompt', () => {
 
 				// Press Shift+Right once to select mention
 				fireEvent.keyDown(editableDiv, { key: 'ArrowRight', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 
 				// Press Shift+Right again to extend selection by one character (the space)
 				fireEvent.keyDown(editableDiv, { key: 'ArrowRight', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe ');
+				expect(getSelectionText()).toBe('John Doe ');
 			});
 
 			it('moves cursor past entire mention with single Left arrow (no shift)', () => {
-				const { container } = render(<Prompt initialValue="hello @[John Doe]" />);
+				const { container } = render(<Prompt initialValue="hello @[John Doe]" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at the end
@@ -1007,11 +1017,11 @@ describe('Prompt', () => {
 
 				// Now Shift+Right should select the entire mention (proving cursor is before it)
 				fireEvent.keyDown(editableDiv, { key: 'ArrowRight', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 			});
 
 			it('moves cursor past entire mention with single Right arrow (no shift)', () => {
-				const { container } = render(<Prompt initialValue="@[John Doe] hello" />);
+				const { container } = render(<Prompt initialValue="@[John Doe] hello" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at the start
@@ -1022,11 +1032,11 @@ describe('Prompt', () => {
 
 				// Now Shift+Left should select the entire mention (proving cursor is after it)
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 			});
 
 			it('adds mention-selected class when mention is within selection', () => {
-				const { container } = render(<Prompt initialValue="@[John Doe]" />);
+				const { container } = render(<Prompt initialValue="@[John Doe]" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 				const mentionPill = container.querySelector('[data-mention="John Doe"]')!;
 
@@ -1043,7 +1053,7 @@ describe('Prompt', () => {
 			});
 
 			it('removes mention-selected class when selection is cleared', () => {
-				const { container } = render(<Prompt initialValue="@[John Doe]" />);
+				const { container } = render(<Prompt initialValue="@[John Doe]" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 				const mentionPill = container.querySelector('[data-mention="John Doe"]')!;
 
@@ -1062,7 +1072,7 @@ describe('Prompt', () => {
 			});
 
 			it('selects multiple mentions correctly with Shift+Left', () => {
-				const { container } = render(<Prompt initialValue="hi @[John Doe] and @[Jane Smith]" />);
+				const { container } = render(<Prompt initialValue="hi @[John Doe] and @[Jane Smith]" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at the end
@@ -1070,31 +1080,31 @@ describe('Prompt', () => {
 
 				// First Shift+Left - select second mention
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('@Jane Smith');
+				expect(getSelectionText()).toBe('Jane Smith');
 
 				// Second Shift+Left - extend to include " and "
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe(' @Jane Smith');
+				expect(getSelectionText()).toBe(' Jane Smith');
 
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('d @Jane Smith');
+				expect(getSelectionText()).toBe('d Jane Smith');
 
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('nd @Jane Smith');
+				expect(getSelectionText()).toBe('nd Jane Smith');
 
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('and @Jane Smith');
+				expect(getSelectionText()).toBe('and Jane Smith');
 
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe(' and @Jane Smith');
+				expect(getSelectionText()).toBe(' and Jane Smith');
 
 				// Next Shift+Left - select first mention
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe and @Jane Smith');
+				expect(getSelectionText()).toBe('John Doe and Jane Smith');
 			});
 
 			it('contracts selection with Shift+Right after selecting mention leftward', () => {
-				const { container } = render(<Prompt initialValue="x @[John Doe]" />);
+				const { container } = render(<Prompt initialValue="x @[John Doe]" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at end
@@ -1102,15 +1112,15 @@ describe('Prompt', () => {
 
 				// Select the mention going leftward
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 
 				// Extend left to include space
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe(' @John Doe');
+				expect(getSelectionText()).toBe(' John Doe');
 
 				// Now contract with Shift+Right - should remove the space
 				fireEvent.keyDown(editableDiv, { key: 'ArrowRight', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 
 				// Contract more - should remove the mention entirely
 				fireEvent.keyDown(editableDiv, { key: 'ArrowRight', shiftKey: true });
@@ -1126,15 +1136,15 @@ describe('Prompt', () => {
 
 				// Select the mention going rightward
 				fireEvent.keyDown(editableDiv, { key: 'ArrowRight', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 
 				// Extend right to include space
 				fireEvent.keyDown(editableDiv, { key: 'ArrowRight', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe ');
+				expect(getSelectionText()).toBe('John Doe ');
 
 				// Now contract with Shift+Left - should remove the space
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
-				expect(getSelectionText()).toBe('@John Doe');
+				expect(getSelectionText()).toBe('John Doe');
 
 				// Contract more - should remove the mention entirely
 				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft', shiftKey: true });
@@ -1173,7 +1183,7 @@ describe('Prompt', () => {
 
 		describe('Menu Display with Titles and Dividers', () => {
 			it('renders titles as non-selectable headers', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1188,7 +1198,7 @@ describe('Prompt', () => {
 			});
 
 			it('renders dividers as separators', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1200,7 +1210,7 @@ describe('Prompt', () => {
 			});
 
 			it('shows items with children with chevron indicator', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1217,7 +1227,7 @@ describe('Prompt', () => {
 
 		describe('Navigation with Titles and Dividers', () => {
 			it('skips titles when navigating with ArrowDown', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1229,7 +1239,7 @@ describe('Prompt', () => {
 			});
 
 			it('skips dividers when navigating with ArrowDown', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1245,7 +1255,7 @@ describe('Prompt', () => {
 			});
 
 			it('skips titles and dividers when navigating with ArrowUp', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1262,7 +1272,7 @@ describe('Prompt', () => {
 			});
 
 			it('wraps around when navigating past end, skipping non-selectable items', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1282,7 +1292,7 @@ describe('Prompt', () => {
 
 		describe('Entering Submenus with Tab', () => {
 			it('enters submenu when pressing Tab on item with children', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1304,7 +1314,7 @@ describe('Prompt', () => {
 			});
 
 			it('selects first selectable item in submenu (skipping title)', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1320,7 +1330,7 @@ describe('Prompt', () => {
 			});
 
 			it('inserts mention when pressing Tab on item without children', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1333,7 +1343,7 @@ describe('Prompt', () => {
 			});
 
 			it('can navigate deeply nested submenus', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1357,7 +1367,7 @@ describe('Prompt', () => {
 
 		describe('Exiting Submenus with Escape', () => {
 			it('exits submenu back to parent when pressing Escape', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1380,7 +1390,7 @@ describe('Prompt', () => {
 			});
 
 			it('selects parent item after exiting submenu', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1399,7 +1409,7 @@ describe('Prompt', () => {
 			});
 
 			it('closes menu when pressing Escape at root level', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1413,7 +1423,7 @@ describe('Prompt', () => {
 			});
 
 			it('exits multiple levels of submenus with multiple Escapes', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1448,7 +1458,7 @@ describe('Prompt', () => {
 
 		describe('Back Button', () => {
 			it('shows Back button when in submenu', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1466,7 +1476,7 @@ describe('Prompt', () => {
 			});
 
 			it('clicking Back button exits submenu', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1488,7 +1498,7 @@ describe('Prompt', () => {
 
 		describe('Selecting Items in Submenus', () => {
 			it('inserts mention from submenu with Enter', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1506,7 +1516,7 @@ describe('Prompt', () => {
 			});
 
 			it('inserts mention from submenu by clicking', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1525,7 +1535,7 @@ describe('Prompt', () => {
 			});
 
 			it('clicking on item with children enters submenu instead of selecting', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1542,7 +1552,7 @@ describe('Prompt', () => {
 
 		describe('Hover Selection in Submenus', () => {
 			it('updates selection on hover', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -1563,7 +1573,7 @@ describe('Prompt', () => {
 
 		describe('Search with Flat Results', () => {
 			it('shows flat list of matching items when searching', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Search for "Project" - should find items from nested structure
@@ -1578,7 +1588,7 @@ describe('Prompt', () => {
 			});
 
 			it('finds deeply nested items in flat search results', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Search for "Old" - should find deeply nested item
@@ -1595,7 +1605,7 @@ describe('Prompt', () => {
 			});
 
 			it('search results do not have chevron indicators (no children)', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Search for "Project" 
@@ -1610,7 +1620,7 @@ describe('Prompt', () => {
 			});
 
 			it('can select search result directly without navigating submenu', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Search for "Beta"
@@ -1626,7 +1636,7 @@ describe('Prompt', () => {
 			});
 
 			it('clears search and shows full menu when deleting search text', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Type search
@@ -1645,7 +1655,7 @@ describe('Prompt', () => {
 			});
 
 			it('search results exclude titles and dividers', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Search for "Peo" which would match the title "People"
@@ -1660,7 +1670,7 @@ describe('Prompt', () => {
 			});
 
 			it('shows items from multiple levels that match search', () => {
-				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Search for "a" - should match Alice, Project Alpha, Archived
@@ -1679,12 +1689,13 @@ describe('Prompt', () => {
 			{ id: 'user-123', label: 'John Doe' },
 			{ id: 'user-456', label: 'Jane Smith' },
 		];
+		const configWithIds: MentionConfig[] = [{ trigger: '@', options: optionsWithIds }];
 
 		describe('ID in @[] Format', () => {
 			it('serializes mention with id instead of label', () => {
 				const handleChange = vi.fn();
 				const { container } = render(
-					<Prompt mentionOptions={optionsWithIds} onChange={handleChange} />
+					<Prompt mentionConfigs={configWithIds} onChange={handleChange} />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -1702,14 +1713,14 @@ describe('Prompt', () => {
 				const { container } = render(
 					<Prompt
 						initialValue="Hello @[user-123]!"
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 
 				// Should display the label, not the id
 				const mentionPill = container.querySelector('[data-mention="John Doe"]');
 				expect(mentionPill).toBeInTheDocument();
-				expect(mentionPill?.textContent).toBe('@John Doe');
+				expect(mentionPill?.textContent).toBe('John Doe');
 
 				// Should have the id stored
 				expect(mentionPill?.getAttribute('data-mention-id')).toBe('user-123');
@@ -1719,7 +1730,7 @@ describe('Prompt', () => {
 				const { container } = render(
 					<Prompt
 						initialValue="Hello @[unknown-id]!"
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 
@@ -1731,7 +1742,7 @@ describe('Prompt', () => {
 
 			it('stores both id and label in mention pill attributes', () => {
 				const { container } = render(
-					<Prompt mentionOptions={optionsWithIds} />
+					<Prompt mentionConfigs={configWithIds} />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -1748,7 +1759,7 @@ describe('Prompt', () => {
 			it('calls onChange with empty mentions array when no mentions', () => {
 				const handleChange = vi.fn();
 				const { container } = render(
-					<Prompt onChange={handleChange} mentionOptions={optionsWithIds} />
+					<Prompt onChange={handleChange} mentionConfigs={configWithIds} />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -1761,7 +1772,7 @@ describe('Prompt', () => {
 			it('calls onChange with mentions array when content has mentions', () => {
 				const handleChange = vi.fn();
 				const { container } = render(
-					<Prompt onChange={handleChange} mentionOptions={optionsWithIds} />
+					<Prompt onChange={handleChange} mentionConfigs={configWithIds} />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -1770,7 +1781,7 @@ describe('Prompt', () => {
 
 				expect(handleChange).toHaveBeenLastCalledWith(
 					'@[user-123] ',
-					[{ id: 'user-123', label: 'John Doe' }]
+					[{ id: 'user-123', label: 'John Doe', trigger: '@' }]
 				);
 			});
 
@@ -1780,7 +1791,7 @@ describe('Prompt', () => {
 					<Prompt
 						initialValue="@[user-123] and @[user-456]"
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -1814,8 +1825,8 @@ describe('Prompt', () => {
 				expect(handleChange).toHaveBeenLastCalledWith(
 					'@[user-123] and @[user-456] more',
 					expect.arrayContaining([
-						{ id: 'user-123', label: 'John Doe' },
-						{ id: 'user-456', label: 'Jane Smith' },
+						{ id: 'user-123', label: 'John Doe', trigger: '@' },
+						{ id: 'user-456', label: 'Jane Smith', trigger: '@' },
 					])
 				);
 			});
@@ -1825,7 +1836,7 @@ describe('Prompt', () => {
 			it('calls onEnter with empty mentions array when no mentions', () => {
 				const handleEnter = vi.fn();
 				const { container } = render(
-					<Prompt onEnter={handleEnter} mentionOptions={optionsWithIds} />
+					<Prompt onEnter={handleEnter} mentionConfigs={configWithIds} />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -1842,7 +1853,7 @@ describe('Prompt', () => {
 					<Prompt
 						initialValue="Hello @[user-123]!"
 						onEnter={handleEnter}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -1851,7 +1862,7 @@ describe('Prompt', () => {
 
 				expect(handleEnter).toHaveBeenCalledWith(
 					'Hello @[user-123]!',
-					[{ id: 'user-123', label: 'John Doe' }]
+					[{ id: 'user-123', label: 'John Doe', trigger: '@' }]
 				);
 			});
 
@@ -1861,7 +1872,7 @@ describe('Prompt', () => {
 					<Prompt
 						initialValue="@[user-123] and @[user-456]"
 						onEnter={handleEnter}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -1871,8 +1882,8 @@ describe('Prompt', () => {
 				expect(handleEnter).toHaveBeenCalledWith(
 					'@[user-123] and @[user-456]',
 					expect.arrayContaining([
-						{ id: 'user-123', label: 'John Doe' },
-						{ id: 'user-456', label: 'Jane Smith' },
+						{ id: 'user-123', label: 'John Doe', trigger: '@' },
+						{ id: 'user-456', label: 'Jane Smith', trigger: '@' },
 					])
 				);
 			});
@@ -1886,7 +1897,7 @@ describe('Prompt', () => {
 					<Prompt
 						onMentionAdded={handleMentionAdded}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -1897,6 +1908,7 @@ describe('Prompt', () => {
 				expect(handleMentionAdded).toHaveBeenCalledWith({
 					id: 'user-123',
 					label: 'John Doe',
+					trigger: '@',
 				});
 			});
 
@@ -1907,7 +1919,7 @@ describe('Prompt', () => {
 					<Prompt
 						onMentionAdded={handleMentionAdded}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -1918,6 +1930,7 @@ describe('Prompt', () => {
 				expect(handleMentionAdded).toHaveBeenCalledWith({
 					id: 'user-123',
 					label: 'John Doe',
+					trigger: '@',
 				});
 			});
 
@@ -1928,7 +1941,7 @@ describe('Prompt', () => {
 					<Prompt
 						onMentionAdded={handleMentionAdded}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -1942,6 +1955,7 @@ describe('Prompt', () => {
 				expect(handleMentionAdded).toHaveBeenCalledWith({
 					id: 'user-456',
 					label: 'Jane Smith',
+					trigger: '@',
 				});
 			});
 
@@ -1952,7 +1966,7 @@ describe('Prompt', () => {
 					<Prompt
 						onMentionAdded={handleMentionAdded}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -1964,6 +1978,7 @@ describe('Prompt', () => {
 				expect(handleMentionAdded).toHaveBeenCalledWith({
 					id: 'user-123',
 					label: 'John Doe',
+					trigger: '@',
 				});
 
 				// Add second mention
@@ -1998,6 +2013,7 @@ describe('Prompt', () => {
 				expect(handleMentionAdded).toHaveBeenCalledWith({
 					id: 'user-456',
 					label: 'Jane Smith',
+					trigger: '@',
 				});
 			});
 
@@ -2007,7 +2023,7 @@ describe('Prompt', () => {
 					<Prompt
 						initialValue="Hello @[user-123]!"
 						onMentionAdded={handleMentionAdded}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 
@@ -2025,7 +2041,7 @@ describe('Prompt', () => {
 						initialValue="@[user-123] "
 						onMentionDeleted={handleMentionDeleted}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -2051,6 +2067,7 @@ describe('Prompt', () => {
 				expect(handleMentionDeleted).toHaveBeenCalledWith({
 					id: 'user-123',
 					label: 'John Doe',
+					trigger: '@',
 				});
 			});
 
@@ -2062,7 +2079,7 @@ describe('Prompt', () => {
 						initialValue="Hello @[user-123]!"
 						onMentionDeleted={handleMentionDeleted}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 
@@ -2087,7 +2104,7 @@ describe('Prompt', () => {
 						initialValue="@[user-123]"
 						onMentionDeleted={handleMentionDeleted}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 
@@ -2100,6 +2117,7 @@ describe('Prompt', () => {
 				expect(handleMentionDeleted).toHaveBeenCalledWith({
 					id: 'user-123',
 					label: 'John Doe',
+					trigger: '@',
 				});
 			});
 
@@ -2111,7 +2129,7 @@ describe('Prompt', () => {
 						initialValue="@[user-123] and @[user-456]"
 						onMentionDeleted={handleMentionDeleted}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -2124,10 +2142,12 @@ describe('Prompt', () => {
 				expect(handleMentionDeleted).toHaveBeenCalledWith({
 					id: 'user-123',
 					label: 'John Doe',
+					trigger: '@',
 				});
 				expect(handleMentionDeleted).toHaveBeenCalledWith({
 					id: 'user-456',
 					label: 'Jane Smith',
+					trigger: '@',
 				});
 			});
 
@@ -2139,7 +2159,7 @@ describe('Prompt', () => {
 						initialValue="Hello world"
 						onMentionDeleted={handleMentionDeleted}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -2162,7 +2182,7 @@ describe('Prompt', () => {
 						onMentionAdded={handleMentionAdded}
 						onMentionDeleted={handleMentionDeleted}
 						onChange={handleChange}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -2188,7 +2208,7 @@ describe('Prompt', () => {
 					<Prompt
 						onChange={handleChange}
 						onMentionAdded={handleMentionAdded}
-						mentionOptions={optionsWithIds}
+						mentionConfigs={configWithIds}
 					/>
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
@@ -2201,7 +2221,7 @@ describe('Prompt', () => {
 
 				// Verify onChange was called with mentions array
 				const lastCall = handleChange.mock.calls[handleChange.mock.calls.length - 1] as [string, unknown[]];
-				expect(lastCall?.[1]).toEqual([{ id: 'user-123', label: 'John Doe' }]);
+				expect(lastCall?.[1]).toEqual([{ id: 'user-123', label: 'John Doe', trigger: '@' }]);
 			});
 		});
 	});
@@ -2258,7 +2278,8 @@ describe('Prompt', () => {
 			});
 
 			it('copies mention as serialized format in text/plain', () => {
-				const { container } = render(<Prompt initialValue="Hello @[John Doe] there" />);
+				// Use id format - when copied, it serializes using the id
+				const { container } = render(<Prompt initialValue="Hello @[john-doe] there" />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Select all content
@@ -2271,11 +2292,12 @@ describe('Prompt', () => {
 				const { event, clipboardData } = createClipboardEvent('copy');
 				editableDiv.dispatchEvent(event);
 
-				expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Hello @[John Doe] there');
+				expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Hello @[john-doe] there');
 			});
 
 			it('copies mention along with surrounding text', () => {
-				const { container } = render(<Prompt initialValue="Say hi to @[John Doe] please" />);
+				// Use id format - when copied, it serializes using the id
+				const { container } = render(<Prompt initialValue="Say hi to @[john-doe] please" />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Select from "to " through the mention
@@ -2288,10 +2310,10 @@ describe('Prompt', () => {
 				const { event, clipboardData } = createClipboardEvent('copy');
 				editableDiv.dispatchEvent(event);
 
-				// The copied text should include the mention in serialized format
+				// The copied text should include the mention in serialized format using id
 				expect(clipboardData.setData).toHaveBeenCalledWith(
 					'text/plain',
-					'Say hi to @[John Doe] please'
+					'Say hi to @[john-doe] please'
 				);
 			});
 
@@ -2318,8 +2340,9 @@ describe('Prompt', () => {
 			});
 
 			it('copies multiple mentions correctly', () => {
+				// Use id format - when copied, it serializes using the id
 				const { container } = render(
-					<Prompt initialValue="@[John Doe] and @[Jane Smith] are here" />
+					<Prompt initialValue="@[john-doe] and @[jane-smith] are here" />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -2335,7 +2358,7 @@ describe('Prompt', () => {
 
 				expect(clipboardData.setData).toHaveBeenCalledWith(
 					'text/plain',
-					'@[John Doe] and @[Jane Smith] are here'
+					'@[john-doe] and @[jane-smith] are here'
 				);
 			});
 		});
@@ -2359,8 +2382,9 @@ describe('Prompt', () => {
 
 			it('cuts mention and removes it from editor', () => {
 				const handleChange = vi.fn();
+				// Use id format - when cut, it serializes using the id
 				const { container } = render(
-					<Prompt initialValue="Hello @[John Doe] there" onChange={handleChange} />
+					<Prompt initialValue="Hello @[john-doe] there" onChange={handleChange} />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -2374,7 +2398,7 @@ describe('Prompt', () => {
 				const { event, clipboardData } = createClipboardEvent('cut');
 				editableDiv.dispatchEvent(event);
 
-				expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Hello @[John Doe] there');
+				expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Hello @[john-doe] there');
 				expect(editableDiv.textContent).toBe('');
 			});
 		});
@@ -2382,7 +2406,7 @@ describe('Prompt', () => {
 		describe('Paste (Cmd+V)', () => {
 			it('pastes plain text at cursor position', () => {
 				const handleChange = vi.fn();
-				const { container } = render(<Prompt onChange={handleChange} />);
+				const { container } = render(<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at beginning
@@ -2399,7 +2423,7 @@ describe('Prompt', () => {
 
 			it('pastes text with serialized mention and converts to pill', () => {
 				const handleChange = vi.fn();
-				const { container } = render(<Prompt onChange={handleChange} />);
+				const { container } = render(<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				// Set cursor at beginning
@@ -2448,7 +2472,7 @@ describe('Prompt', () => {
 
 			it('pastes multiple mentions from serialized text', () => {
 				const handleChange = vi.fn();
-				const { container } = render(<Prompt onChange={handleChange} />);
+				const { container } = render(<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				const textNode = document.createTextNode('');
@@ -2465,7 +2489,7 @@ describe('Prompt', () => {
 			});
 
 			it('pastes HTML with mention pills preserving structure', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				const textNode = document.createTextNode('');
@@ -2525,7 +2549,7 @@ describe('Prompt', () => {
 			});
 
 			it('uses custom trigger when pasting mentions', () => {
-				const { container } = render(<Prompt mentionTrigger="#" />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '#', options: [{ id: 'important', label: 'important' }] }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				const textNode = document.createTextNode('');
@@ -2537,7 +2561,7 @@ describe('Prompt', () => {
 
 				const mentionPill = container.querySelector('[data-mention="important"]');
 				expect(mentionPill).toBeInTheDocument();
-				expect(mentionPill?.textContent).toBe('#important');
+				expect(mentionPill?.textContent).toBe('important');
 			});
 
 			it('handles paste with no clipboard data gracefully', () => {
@@ -2552,7 +2576,7 @@ describe('Prompt', () => {
 			});
 
 			it('updates history after paste for undo support', () => {
-				const { container } = render(<Prompt />);
+				const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				const textNode = document.createTextNode('');
@@ -2578,10 +2602,10 @@ describe('Prompt', () => {
 			{ id: 'bob', label: 'Bob' },
 		];
 
-		describe('mentionMenuPosition prop', () => {
-			it('accepts mentionMenuPosition="below" prop', () => {
+		describe('menuPosition in mentionConfigs', () => {
+			it('accepts menuPosition="below" in config', () => {
 				const { container } = render(
-					<Prompt mentionOptions={mockOptions} mentionMenuPosition="below" />
+					<Prompt mentionConfigs={[{ trigger: '@', options: mockOptions, menuPosition: 'below' }]} />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -2591,9 +2615,9 @@ describe('Prompt', () => {
 				expect(menu).toBeInTheDocument();
 			});
 
-			it('accepts mentionMenuPosition="above" prop', () => {
+			it('accepts menuPosition="above" in config', () => {
 				const { container } = render(
-					<Prompt mentionOptions={mockOptions} mentionMenuPosition="above" />
+					<Prompt mentionConfigs={[{ trigger: '@', options: mockOptions, menuPosition: 'above' }]} />
 				);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
@@ -2604,7 +2628,7 @@ describe('Prompt', () => {
 			});
 
 			it('menu is fixed positioned', () => {
-				const { container } = render(<Prompt mentionOptions={mockOptions} />);
+				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: mockOptions }]} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv, '@');
@@ -2612,6 +2636,421 @@ describe('Prompt', () => {
 				const menu = container.querySelector('.mention-menu') as HTMLElement;
 				expect(menu).toBeInTheDocument();
 				expect(menu.style.position).toBe('fixed');
+			});
+		});
+	});
+
+	describe('Multiple Triggers', () => {
+		const peopleOptions = [
+			{ id: 'alice', label: 'Alice' },
+			{ id: 'bob', label: 'Bob' },
+		];
+
+		const tagOptions = [
+			{ id: 'urgent', label: 'urgent' },
+			{ id: 'bug', label: 'bug' },
+		];
+
+		const commandOptions = [
+			{ id: 'help', label: 'help' },
+			{ id: 'clear', label: 'clear' },
+		];
+
+		const multiConfig: MentionConfig[] = [
+			{ trigger: '@', options: peopleOptions },
+			{ trigger: '#', options: tagOptions },
+			{ trigger: '/', options: commandOptions },
+		];
+
+		describe('Trigger Detection', () => {
+			it('opens menu with correct options for @ trigger', () => {
+				const { container } = render(<Prompt mentionConfigs={multiConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				expect(screen.getByText('Alice')).toBeInTheDocument();
+				expect(screen.getByText('Bob')).toBeInTheDocument();
+				expect(screen.queryByText('urgent')).not.toBeInTheDocument();
+				expect(screen.queryByText('help')).not.toBeInTheDocument();
+			});
+
+			it('opens menu with correct options for # trigger', () => {
+				const { container } = render(<Prompt mentionConfigs={multiConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '#');
+
+				expect(screen.getByText('urgent')).toBeInTheDocument();
+				expect(screen.getByText('bug')).toBeInTheDocument();
+				expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+				expect(screen.queryByText('help')).not.toBeInTheDocument();
+			});
+
+			it('opens menu with correct options for / trigger', () => {
+				const { container } = render(<Prompt mentionConfigs={multiConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '/');
+
+				expect(screen.getByText('help')).toBeInTheDocument();
+				expect(screen.getByText('clear')).toBeInTheDocument();
+				expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+				expect(screen.queryByText('urgent')).not.toBeInTheDocument();
+			});
+
+			it('does not open menu for unconfigured trigger', () => {
+				const { container } = render(<Prompt mentionConfigs={multiConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '!');
+
+				expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+				expect(screen.queryByText('urgent')).not.toBeInTheDocument();
+				expect(screen.queryByText('help')).not.toBeInTheDocument();
+			});
+		});
+
+		describe('Mention Insertion', () => {
+			it('inserts @ mention with correct format', () => {
+				const handleChange = vi.fn();
+				const { container } = render(<Prompt mentionConfigs={multiConfig} onChange={handleChange} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select Alice
+
+				const pill = container.querySelector('[data-mention="Alice"]');
+				expect(pill).toBeInTheDocument();
+				expect(pill?.textContent).toBe('Alice');
+				expect(handleChange).toHaveBeenCalledWith('@[alice] ', expect.any(Array));
+			});
+
+			it('inserts # mention with correct format', () => {
+				const handleChange = vi.fn();
+				const { container } = render(<Prompt mentionConfigs={multiConfig} onChange={handleChange} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '#');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select urgent
+
+				const pill = container.querySelector('[data-mention="urgent"]');
+				expect(pill).toBeInTheDocument();
+				expect(pill?.textContent).toBe('urgent');
+				expect(handleChange).toHaveBeenCalledWith('#[urgent] ', expect.any(Array));
+			});
+
+			it('inserts / mention with correct format', () => {
+				const handleChange = vi.fn();
+				const { container } = render(<Prompt mentionConfigs={multiConfig} onChange={handleChange} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '/');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select help
+
+				const pill = container.querySelector('[data-mention="help"]');
+				expect(pill).toBeInTheDocument();
+				expect(pill?.textContent).toBe('help');
+				expect(handleChange).toHaveBeenCalledWith('/[help] ', expect.any(Array));
+			});
+		});
+
+		describe('Multiple Mentions in Same Input', () => {
+			it('can insert mentions from different triggers', () => {
+				const handleChange = vi.fn();
+				const { container } = render(<Prompt mentionConfigs={multiConfig} onChange={handleChange} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Insert @ mention
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				// Clear and insert # mention
+				simulateTypingWithCursor(editableDiv, '@[alice] #');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(container.querySelector('[data-mention="Alice"]')).toBeInTheDocument();
+				expect(container.querySelector('[data-mention="urgent"]')).toBeInTheDocument();
+			});
+		});
+
+		describe('Callback with Trigger Info', () => {
+			it('onMentionAdded includes trigger in mention object', () => {
+				const handleMentionAdded = vi.fn();
+				const { container } = render(
+					<Prompt mentionConfigs={multiConfig} onMentionAdded={handleMentionAdded} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleMentionAdded).toHaveBeenCalledWith({
+					id: 'alice',
+					label: 'Alice',
+					trigger: '@',
+				});
+			});
+
+			it('onMentionAdded includes correct trigger for # mention', () => {
+				const handleMentionAdded = vi.fn();
+				const { container } = render(
+					<Prompt mentionConfigs={multiConfig} onMentionAdded={handleMentionAdded} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '#');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleMentionAdded).toHaveBeenCalledWith({
+					id: 'urgent',
+					label: 'urgent',
+					trigger: '#',
+				});
+			});
+
+			it('onChange mentions array includes trigger for each mention', () => {
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						mentionConfigs={multiConfig}
+						initialValue="@[alice] and #[bug]"
+						onChange={handleChange}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Add some text to trigger onChange while preserving existing mentions
+				// The component should already have the mention pills from initialValue
+				const textNode = document.createTextNode(' more');
+				editableDiv.appendChild(textNode);
+				fireEvent.input(editableDiv);
+
+				expect(handleChange).toHaveBeenCalled();
+				const lastCall = handleChange.mock.calls[handleChange.mock.calls.length - 1]!;
+				const mentions = lastCall[1];
+
+				expect(mentions).toEqual(
+					expect.arrayContaining([
+						expect.objectContaining({ id: 'alice', trigger: '@' }),
+						expect.objectContaining({ id: 'bug', trigger: '#' }),
+					])
+				);
+			});
+		});
+
+		describe('Initial Value with Multiple Triggers', () => {
+			it('parses initial value with multiple trigger types', () => {
+				const { container } = render(
+					<Prompt
+						mentionConfigs={multiConfig}
+						initialValue="Hey @[alice], check #[urgent] and run /[help]"
+					/>
+				);
+
+				expect(container.querySelector('[data-mention="Alice"]')).toBeInTheDocument();
+				expect(container.querySelector('[data-mention="urgent"]')).toBeInTheDocument();
+				expect(container.querySelector('[data-mention="help"]')).toBeInTheDocument();
+			});
+
+			it('displays correct trigger prefix for each mention type', () => {
+				const { container } = render(
+					<Prompt
+						mentionConfigs={multiConfig}
+						initialValue="@[alice] #[bug] /[clear]"
+					/>
+				);
+
+				const alicePill = container.querySelector('[data-mention="Alice"]');
+				const bugPill = container.querySelector('[data-mention="bug"]');
+				const clearPill = container.querySelector('[data-mention="clear"]');
+
+				expect(alicePill?.textContent).toBe('Alice');
+				expect(bugPill?.textContent).toBe('bug');
+				expect(clearPill?.textContent).toBe('clear');
+			});
+		});
+
+		describe('Per-Trigger Menu Position', () => {
+			it('respects different menuPosition for each trigger', () => {
+				const configWithPositions: MentionConfig[] = [
+					{ trigger: '@', options: peopleOptions, menuPosition: 'below' },
+					{ trigger: '#', options: tagOptions, menuPosition: 'above' },
+				];
+
+				const { container: container1 } = render(<Prompt mentionConfigs={configWithPositions} />);
+				const editableDiv1 = container1.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv1, '@');
+				const menu1 = container1.querySelector('.mention-menu');
+				expect(menu1).toBeInTheDocument();
+
+				cleanup();
+
+				const { container: container2 } = render(<Prompt mentionConfigs={configWithPositions} />);
+				const editableDiv2 = container2.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv2, '#');
+				const menu2 = container2.querySelector('.mention-menu');
+				expect(menu2).toBeInTheDocument();
+			});
+		});
+
+		describe('Switching Between Triggers', () => {
+			it('can open different trigger menus in sequence', () => {
+				const { container, rerender } = render(<Prompt mentionConfigs={multiConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Open @ menu
+				simulateTypingWithCursor(editableDiv, '@');
+				expect(screen.getByText('Alice')).toBeInTheDocument();
+
+				// Press Escape to close menu
+				fireEvent.keyDown(editableDiv, { key: 'Escape' });
+				expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+
+				// Open # menu
+				simulateTypingWithCursor(editableDiv, 'text #');
+				expect(screen.getByText('urgent')).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe('showTrigger Option', () => {
+		const optionsForTest = [
+			{ id: 'alice', label: 'Alice' },
+			{ id: 'bob', label: 'Bob' },
+		];
+
+		describe('showTrigger: false (default)', () => {
+			it('displays trigger in mention pill by default', () => {
+				const { container } = render(
+					<Prompt mentionConfigs={[{ trigger: '@', options: optionsForTest }]} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const pill = container.querySelector('[data-mention="Alice"]');
+				expect(pill).toBeInTheDocument();
+				expect(pill?.textContent).toBe('Alice');
+			});
+
+			it('displays trigger when showTrigger is explicitly true', () => {
+				const { container } = render(
+					<Prompt mentionConfigs={[{ trigger: '#', options: optionsForTest, showTrigger: true }]} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '#');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const pill = container.querySelector('[data-mention="Alice"]');
+				expect(pill).toBeInTheDocument();
+				expect(pill?.textContent).toBe('#Alice');
+			});
+		});
+
+		describe('showTrigger: false', () => {
+			it('hides trigger in mention pill', () => {
+				const { container } = render(
+					<Prompt mentionConfigs={[{ trigger: '@', options: optionsForTest, showTrigger: false }]} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const pill = container.querySelector('[data-mention="Alice"]');
+				expect(pill).toBeInTheDocument();
+				expect(pill?.textContent).toBe('Alice');
+			});
+
+			it('still stores trigger in data attribute for serialization', () => {
+				const { container } = render(
+					<Prompt mentionConfigs={[{ trigger: '@', options: optionsForTest, showTrigger: false }]} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const pill = container.querySelector('[data-mention="Alice"]');
+				expect(pill?.getAttribute('data-mention-trigger')).toBe('@');
+			});
+
+			it('has data-hide-trigger attribute when trigger is hidden', () => {
+				const { container } = render(
+					<Prompt mentionConfigs={[{ trigger: '@', options: optionsForTest, showTrigger: false }]} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const pill = container.querySelector('[data-mention="Alice"]');
+				expect(pill?.hasAttribute('data-hide-trigger')).toBe(true);
+			});
+
+			it('serializes with trigger even when hidden in display', () => {
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						mentionConfigs={[{ trigger: '@', options: optionsForTest, showTrigger: false }]}
+						onChange={handleChange}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				// Serialized format should still include the trigger
+				expect(handleChange).toHaveBeenCalledWith('@[alice] ', expect.any(Array));
+			});
+		});
+
+		describe('Mixed showTrigger settings', () => {
+			it('respects different showTrigger per trigger', () => {
+				const { container } = render(
+					<Prompt
+						mentionConfigs={[
+							{ trigger: '@', options: optionsForTest, showTrigger: true },
+							{ trigger: '#', options: [{ id: 'tag1', label: 'important' }], showTrigger: false },
+						]}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Insert @ mention (should show trigger)
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const atPill = container.querySelector('[data-mention="Alice"]');
+				expect(atPill?.textContent).toBe('@Alice');
+
+				// Insert # mention (should hide trigger)
+				simulateTypingWithCursor(editableDiv, '@[alice] #');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const hashPill = container.querySelector('[data-mention="important"]');
+				expect(hashPill?.textContent).toBe('important');
+			});
+		});
+
+		describe('Initial value with showTrigger: false', () => {
+			it('parses initial value without showing trigger', () => {
+				const { container } = render(
+					<Prompt
+						initialValue="Hello @[alice]!"
+						mentionConfigs={[{ trigger: '@', options: optionsForTest, showTrigger: false }]}
+					/>
+				);
+
+				const pill = container.querySelector('[data-mention="Alice"]');
+				expect(pill).toBeInTheDocument();
+				expect(pill?.textContent).toBe('Alice');
 			});
 		});
 	});
