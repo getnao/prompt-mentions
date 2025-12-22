@@ -1,2 +1,8 @@
 dist
 node_modules
+
+*storybook.log
+storybook-static
+.storybook
+vitest.config.ts
+vitest.shims.d.ts
