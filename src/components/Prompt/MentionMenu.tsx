@@ -14,6 +14,7 @@ export interface MentionMenuProps {
 	onExitSubmenu?: () => void;
 	isInSubmenu?: boolean;
 	onHoverIndex?: (index: number) => void;
+	onClose?: () => void;
 }
 
 const ChevronRight = () => (
@@ -67,10 +68,30 @@ const MentionMenu = ({
 	onExitSubmenu,
 	isInSubmenu = false,
 	onHoverIndex,
+	onClose,
 }: MentionMenuProps) => {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const [actualPosition, setActualPosition] = useState<"above" | "below">(preferredPosition);
 	const [menuHeight, setMenuHeight] = useState(0);
+
+	// Handle clicks outside the menu to close it
+	useEffect(() => {
+		if (!isOpen || !onClose) return;
+
+		const handleMouseDown = (e: MouseEvent) => {
+			const target = e.target as Node;
+			// Don't close if clicking inside the menu
+			if (menuRef.current?.contains(target)) return;
+			// Don't close if clicking inside the prompt input (let the input handle it)
+			const promptInput = (target as Element).closest?.(".prompt-input");
+			if (promptInput) return;
+			
+			onClose();
+		};
+
+		document.addEventListener("mousedown", handleMouseDown);
+		return () => document.removeEventListener("mousedown", handleMouseDown);
+	}, [isOpen, onClose]);
 
 	// Calculate menu position after render to detect overflow
 	useLayoutEffect(() => {

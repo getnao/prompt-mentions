@@ -56,6 +56,7 @@ export interface UseContentEditableReturn {
 		isInSubmenu: boolean;
 		setSelectedIndex: (index: number) => void;
 		activeTrigger: string;
+		closeMenu: () => void;
 	};
 }
 

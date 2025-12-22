@@ -79,6 +79,7 @@ const Prompt = (props: PromptProps) => {
 				onExitSubmenu={mentions.exitSubmenu}
 				isInSubmenu={mentions.isInSubmenu}
 				onHoverIndex={mentions.setSelectedIndex}
+				onClose={mentions.closeMenu}
 			/>
 		</div>
 	);
