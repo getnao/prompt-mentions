@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "ESNext",
+    "types": ["@testing-library/jest-dom/vitest"],
     // Output settings
     "outDir": "./dist",
     "rootDir": "./src",
