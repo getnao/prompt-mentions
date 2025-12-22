@@ -9,9 +9,10 @@ import type { MentionOption } from "./useMentions";
 
 export interface UseContentEditableOptions {
 	initialValue?: string | undefined;
-	onChange?: ((value: string) => void) | undefined;
 	mentionTrigger?: string | undefined;
 	mentionOptions?: MentionOption[] | undefined;
+	onChange?: ((value: string) => void) | undefined;
+	onEnter?: ((value: string) => void) | undefined;
 }
 
 export interface UseContentEditableReturn {
@@ -22,6 +23,7 @@ export interface UseContentEditableReturn {
 		onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
 		onKeyUp: (e: React.KeyboardEvent<HTMLDivElement>) => void;
 		onSelect: () => void;
+		onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
 		onCopy: (e: React.ClipboardEvent<HTMLDivElement>) => void;
 		onCut: (e: React.ClipboardEvent<HTMLDivElement>) => void;
 		onPaste: (e: React.ClipboardEvent<HTMLDivElement>) => void;
@@ -224,6 +226,7 @@ const SelectionUtils = {
 export function useContentEditable({
 	initialValue = "",
 	onChange,
+	onEnter,
 	mentionTrigger = "@",
 	mentionOptions,
 }: UseContentEditableOptions = {}): UseContentEditableReturn {
@@ -1068,8 +1071,15 @@ export function useContentEditable({
 				e.preventDefault();
 				handleRedo();
 			}
+
+			// Enter key (when mention menu is not open) - prevent newline, call handler
+			// Shift+Enter allows newline insertion
+			if (e.key === "Enter" && !e.shiftKey) {
+				e.preventDefault();
+				onEnter?.(getValue());
+			}
 		},
-		[mentions, insertMention, handleBackspaceOnMention, handleUndo, handleRedo, handleAtomicMentionNavigation, getElement, mentionTrigger]
+		[mentions, insertMention, handleBackspaceOnMention, handleUndo, handleRedo, handleAtomicMentionNavigation, getElement, mentionTrigger, onEnter]
 	);
 
 	/**
@@ -1128,6 +1138,52 @@ export function useContentEditable({
 			});
 		}
 	}, [mentions.menuState.isOpen, checkForMentionTrigger, updateMentionSelectionVisuals]);
+
+	/**
+	 * Handle mousedown to prevent cursor from getting stuck inside mention elements.
+	 * When clicking on a mention, position cursor after it instead.
+	 */
+	const onMouseDown = useCallback(
+		(e: React.MouseEvent<HTMLDivElement>) => {
+			const target = e.target as HTMLElement;
+
+			// Check if we clicked on a mention or inside one
+			const mentionElement = target.closest("[data-mention]") as HTMLElement | null;
+			if (!mentionElement) return;
+
+			const el = getElement();
+			if (!el) return;
+
+			// Prevent default to avoid browser placing cursor inside the mention
+			e.preventDefault();
+
+			// Determine click position relative to mention center to decide cursor placement
+			const rect = mentionElement.getBoundingClientRect();
+			const clickX = e.clientX;
+			const mentionCenterX = rect.left + rect.width / 2;
+
+			const sel = SelectionUtils.get();
+			if (!sel) return;
+
+			const range = document.createRange();
+
+			if (clickX < mentionCenterX) {
+				// Clicked on left half - place cursor before mention
+				range.setStartBefore(mentionElement);
+			} else {
+				// Clicked on right half - place cursor after mention
+				range.setStartAfter(mentionElement);
+			}
+			range.collapse(true);
+
+			sel.removeAllRanges();
+			sel.addRange(range);
+
+			// Focus the contenteditable to ensure it receives keyboard input
+			el.focus();
+		},
+		[getElement]
+	);
 
 	const onInput = useCallback(() => {
 		if (!getElement() || history.isUndoRedo()) return;
@@ -1306,7 +1362,7 @@ export function useContentEditable({
 	return {
 		ref,
 		isEmpty,
-		handlers: { onInput, onKeyDown, onKeyUp, onSelect, onCopy, onCut, onPaste },
+		handlers: { onInput, onKeyDown, onKeyUp, onSelect, onMouseDown, onCopy, onCut, onPaste },
 		mentions: {
 			menuState: mentions.menuState,
 			filteredOptions: mentions.filteredOptions,

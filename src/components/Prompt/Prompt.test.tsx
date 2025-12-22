@@ -103,6 +103,78 @@ describe('Prompt', () => {
 		expect(editableDiv).toBeInTheDocument();
 	});
 
+	describe('Enter Key Behavior', () => {
+		it('calls onEnter with current value when pressing Enter', () => {
+			const handleEnter = vi.fn();
+			const { container } = render(<Prompt onEnter={handleEnter} />);
+			const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+			editableDiv.textContent = 'Hello world';
+			fireEvent.input(editableDiv);
+
+			fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+			expect(handleEnter).toHaveBeenCalledWith('Hello world');
+		});
+
+		it('calls onEnter with serialized mention format', () => {
+			const handleEnter = vi.fn();
+			const { container } = render(<Prompt initialValue="Hi @[John Doe]!" onEnter={handleEnter} />);
+			const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+			fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+			expect(handleEnter).toHaveBeenCalledWith('Hi @[John Doe]!');
+		});
+
+		it('does not insert newline when pressing Enter', () => {
+			const { container } = render(<Prompt />);
+			const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+			editableDiv.textContent = 'Hello';
+			fireEvent.input(editableDiv);
+
+			const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+			const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+			editableDiv.dispatchEvent(event);
+
+			expect(preventDefaultSpy).toHaveBeenCalled();
+		});
+
+		it('does not call onEnter when pressing Shift+Enter', () => {
+			const handleEnter = vi.fn();
+			const { container } = render(<Prompt onEnter={handleEnter} />);
+			const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+			editableDiv.textContent = 'Hello';
+			fireEvent.input(editableDiv);
+
+			fireEvent.keyDown(editableDiv, { key: 'Enter', shiftKey: true });
+
+			expect(handleEnter).not.toHaveBeenCalled();
+		});
+
+		it('does not call onEnter when Enter is pressed with mention menu open', () => {
+			const handleEnter = vi.fn();
+			const { container } = render(<Prompt onEnter={handleEnter} />);
+			const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+			// Type @ to open mention menu
+			simulateTypingWithCursor(editableDiv, '@');
+			expect(screen.getByText('John Doe')).toBeInTheDocument();
+
+			// Press Enter to select mention (not submit)
+			fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+			// onEnter should NOT be called - Enter selected the mention instead
+			expect(handleEnter).not.toHaveBeenCalled();
+
+			// Mention should be inserted
+			const mentionPill = container.querySelector('[data-mention="John Doe"]');
+			expect(mentionPill).toBeInTheDocument();
+		});
+	});
+
 	describe('Undo/Redo', () => {
 		it('undoes text changes with Ctrl+Z', () => {
 			const handleChange = vi.fn();

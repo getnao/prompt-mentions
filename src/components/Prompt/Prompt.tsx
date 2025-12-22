@@ -5,6 +5,7 @@ import MentionMenu from "./MentionMenu";
 export interface PromptProps {
 	initialValue?: string;
 	onChange?: (value: string) => void;
+	onEnter?: (value: string) => void;
 	placeholder?: string;
 	mentionTrigger?: string;
 	mentionOptions?: MentionOption[];
@@ -13,15 +14,17 @@ export interface PromptProps {
 const Prompt = ({
 	initialValue = "",
 	onChange,
+	onEnter,
 	placeholder = "",
 	mentionTrigger = "@",
 	mentionOptions,
 }: PromptProps) => {
 	const { ref, isEmpty, handlers, mentions } = useContentEditable({
 		initialValue,
-		onChange,
 		mentionTrigger,
 		mentionOptions,
+		onChange,
+		onEnter,
 	});
 
 	return (
