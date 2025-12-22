@@ -1,18 +1,27 @@
 import { useRef, useCallback, useState, useEffect } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { useHistory } from "./useHistory";
 import { useMentions } from "./useMentions";
 import type { MentionOption } from "./useMentions";
+import type { ReactNode } from "react";
 
 // ============================================================================
 // Types
 // ============================================================================
 
+export interface SelectedMention {
+	id: string;
+	label: string;
+}
+
 export interface UseContentEditableOptions {
 	initialValue?: string | undefined;
 	mentionTrigger?: string | undefined;
 	mentionOptions?: MentionOption[] | undefined;
-	onChange?: ((value: string) => void) | undefined;
-	onEnter?: ((value: string) => void) | undefined;
+	onChange?: ((value: string, mentions: SelectedMention[]) => void) | undefined;
+	onEnter?: ((value: string, mentions: SelectedMention[]) => void) | undefined;
+	onMentionAdded?: ((mention: SelectedMention) => void) | undefined;
+	onMentionDeleted?: ((mention: SelectedMention) => void) | undefined;
 }
 
 export interface UseContentEditableReturn {
@@ -33,6 +42,10 @@ export interface UseContentEditableReturn {
 		filteredOptions: MentionOption[];
 		selectedIndex: number;
 		selectOption: (option: MentionOption) => void;
+		enterSubmenu: (option: MentionOption) => void;
+		exitSubmenu: () => void;
+		isInSubmenu: boolean;
+		setSelectedIndex: (index: number) => void;
 	};
 }
 
@@ -46,13 +59,50 @@ const escapeRegex = (str: string): string =>
 const normalizeValue = (raw: string): string =>
 	raw.replace(/\u00A0/g, " ").trim() ? raw : "";
 
+/**
+ * Flatten nested options into a flat array for icon lookup
+ */
+const flattenOptions = (options: MentionOption[]): MentionOption[] => {
+	const result: MentionOption[] = [];
+	for (const opt of options) {
+		result.push(opt);
+		if (opt.children) {
+			result.push(...flattenOptions(opt.children));
+		}
+	}
+	return result;
+};
+
+// ============================================================================
+// Icon Utilities
+// ============================================================================
+
+const iconToHTML = (icon: ReactNode): string => {
+	if (!icon) return "";
+	if (typeof icon === "string") return icon;
+	try {
+		return renderToStaticMarkup(icon as React.ReactElement);
+	} catch {
+		return "";
+	}
+};
+
 // ============================================================================
 // Mention DOM Utilities
 // ============================================================================
 
 const MentionDOM = {
-	createHTML(name: string, trigger: string): string {
-		return `<span contenteditable="false" data-mention="${name}" class="mention-pill">${trigger}${name}</span>`;
+	createHTML(id: string, label: string, trigger: string, icon?: ReactNode): string {
+		// X icon SVG for delete
+		const deleteIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+		// Icon container with both original icon and delete X (swaps on hover)
+		const iconHTML = icon
+			? `<span class="mention-pill-icon" data-mention-delete="true"><span class="mention-pill-icon-original">${iconToHTML(icon)}</span><span class="mention-pill-icon-delete">${deleteIconSVG}</span></span>`
+			: "";
+		// Store icon HTML in data attribute for later reconstruction
+		const iconAttr = icon ? ` data-icon="${encodeURIComponent(iconToHTML(icon))}"` : "";
+		// Store both id and label - data-mention stores the label for display, data-mention-id stores the id for serialization
+		return `<span contenteditable="false" data-mention="${label}" data-mention-id="${id}"${iconAttr} class="mention-pill">${iconHTML}${trigger}${label}</span>`;
 	},
 
 	isMentionElement(node: Node): node is HTMLElement {
@@ -62,9 +112,24 @@ const MentionDOM = {
 		);
 	},
 
-	parseValue(value: string, trigger: string): string {
+	parseValue(value: string, trigger: string, options?: MentionOption[]): string {
 		const regex = new RegExp(`${escapeRegex(trigger)}\\[([^\\]]+)\\]`, "g");
-		return value.replace(regex, (_, name) => this.createHTML(name, trigger));
+		return value.replace(regex, (_, idOrLabel) => {
+			// Try to find the option by id first, then by label (for backward compatibility)
+			const option = options?.find(opt => opt.id === idOrLabel) || options?.find(opt => opt.label === idOrLabel);
+			const id = option?.id || idOrLabel;
+			const label = option?.label || idOrLabel;
+			return this.createHTML(id, label, trigger, option?.icon);
+		});
+	},
+
+	/**
+	 * Reconstruct mention HTML including icons from stored data attributes.
+	 * Used when parsing existing content that may have icon data.
+	 */
+	parseValueWithIcons(value: string, trigger: string): string {
+		const regex = new RegExp(`${escapeRegex(trigger)}\\[([^\\]]+)\\]`, "g");
+		return value.replace(regex, (_, idOrLabel) => this.createHTML(idOrLabel, idOrLabel, trigger));
 	},
 
 	extractValue(element: HTMLElement, trigger: string): string {
@@ -74,7 +139,9 @@ const MentionDOM = {
 			if (node.nodeType === Node.TEXT_NODE) {
 				result += node.textContent || "";
 			} else if (this.isMentionElement(node)) {
-				result += `${trigger}[${node.getAttribute("data-mention")}]`;
+				// Use the id for serialization if available, otherwise fall back to label
+				const id = node.getAttribute("data-mention-id") || node.getAttribute("data-mention");
+				result += `${trigger}[${id}]`;
 			} else if (node.nodeType === Node.ELEMENT_NODE) {
 				node.childNodes.forEach(walk);
 			}
@@ -85,8 +152,22 @@ const MentionDOM = {
 	},
 
 	/**
-	 * Convert a text position (from innerText) to a serialized position (with @[Name] syntax).
-	 * This is needed because mention spans display as "@Name" but serialize as "@[Name]".
+	 * Extract all mentions from the element as SelectedMention array
+	 */
+	extractMentions(element: HTMLElement): SelectedMention[] {
+		const mentions: SelectedMention[] = [];
+		const mentionElements = element.querySelectorAll("[data-mention]");
+		mentionElements.forEach((el) => {
+			const label = el.getAttribute("data-mention") || "";
+			const id = el.getAttribute("data-mention-id") || label;
+			mentions.push({ id, label });
+		});
+		return mentions;
+	},
+
+	/**
+	 * Convert a text position (from innerText) to a serialized position (with @[id] syntax).
+	 * This is needed because mention spans display as "@Name" but serialize as "@[id]".
 	 */
 	textPosToSerializedPos(element: HTMLElement, textPos: number, trigger: string): number {
 		let textOffset = 0;
@@ -103,8 +184,9 @@ const MentionDOM = {
 				serializedOffset += len;
 			} else if (this.isMentionElement(node)) {
 				const displayLen = node.textContent?.length ?? 0;
-				const name = node.getAttribute("data-mention") || "";
-				const serializedLen = trigger.length + name.length + 2; // @[Name]
+				// Use id for serialization
+				const id = node.getAttribute("data-mention-id") || node.getAttribute("data-mention") || "";
+				const serializedLen = trigger.length + id.length + 2; // @[id]
 
 				if (textOffset + displayLen >= textPos) {
 					// Position is within or at the mention - map to end of serialized
@@ -196,18 +278,30 @@ const SelectionUtils = {
 		sel.addRange(range);
 	},
 
-	getCaretCoordinates(container: HTMLElement): { top: number; left: number } {
+	getCaretCoordinates(container: HTMLElement): { top: number; left: number; bottom: number; height: number } {
 		const range = this.getRange();
-		if (!range) return { top: 0, left: 0 };
+		if (!range) return { top: 0, left: 0, bottom: 0, height: 0 };
 
 		const rect = range.getBoundingClientRect();
 
 		if (rect.width === 0 && rect.height === 0) {
 			const containerRect = container.getBoundingClientRect();
-			return { top: containerRect.top + 20, left: containerRect.left };
+			// Fallback to container position with estimated line height
+			const height = 20;
+			return {
+				top: containerRect.top,
+				left: containerRect.left,
+				bottom: containerRect.top + height,
+				height,
+			};
 		}
 
-		return { top: rect.bottom + 4, left: rect.left };
+		return {
+			top: rect.top,
+			left: rect.left,
+			bottom: rect.bottom,
+			height: rect.height,
+		};
 	},
 
 	setAfter(sel: Selection, node: Node, offset = 1): void {
@@ -227,6 +321,8 @@ export function useContentEditable({
 	initialValue = "",
 	onChange,
 	onEnter,
+	onMentionAdded,
+	onMentionDeleted,
 	mentionTrigger = "@",
 	mentionOptions,
 }: UseContentEditableOptions = {}): UseContentEditableReturn {
@@ -237,6 +333,18 @@ export function useContentEditable({
 	const selectAllPressedRef = useRef(false);
 	// Track the direction of selection: "left" means we're selecting leftward (focus is at start)
 	const selectionDirectionRef = useRef<"left" | "right" | null>(null);
+	// Track current mentions for detecting additions/deletions
+	const currentMentionsRef = useRef<SelectedMention[]>([]);
+	// Store callbacks in refs to ensure they're always up-to-date
+	const onChangeRef = useRef(onChange);
+	const onEnterRef = useRef(onEnter);
+	const onMentionAddedRef = useRef(onMentionAdded);
+	const onMentionDeletedRef = useRef(onMentionDeleted);
+
+	onChangeRef.current = onChange;
+	onEnterRef.current = onEnter;
+	onMentionAddedRef.current = onMentionAdded;
+	onMentionDeletedRef.current = onMentionDeleted;
 
 	const history = useHistory({ initialValue });
 	const mentions = useMentions({ trigger: mentionTrigger, options: mentionOptions });
@@ -254,11 +362,36 @@ export function useContentEditable({
 
 	const updateState = useCallback(
 		(value: string) => {
+			const el = ref.current;
 			const normalized = normalizeValue(value);
 			setIsEmpty(!normalized);
-			onChange?.(normalized);
+
+			// Extract current mentions from DOM
+			const newMentions = el ? MentionDOM.extractMentions(el) : [];
+			const prevMentions = currentMentionsRef.current;
+
+			// Detect added mentions
+			const addedMentions = newMentions.filter(
+				(m) => !prevMentions.some((p) => p.id === m.id)
+			);
+			// Detect deleted mentions
+			const deletedMentions = prevMentions.filter(
+				(p) => !newMentions.some((m) => m.id === p.id)
+			);
+
+			// Update ref with current mentions
+			currentMentionsRef.current = newMentions;
+
+			// Call callbacks for additions (using refs for latest callback)
+			addedMentions.forEach((m) => onMentionAddedRef.current?.(m));
+
+			// Call callbacks for deletions (using refs for latest callback)
+			deletedMentions.forEach((m) => onMentionDeletedRef.current?.(m));
+
+			// Call onChange with value and mentions (using ref for latest callback)
+			onChangeRef.current?.(normalized, newMentions);
 		},
-		[onChange]
+		[]
 	);
 
 	const saveToHistory = useCallback(() => {
@@ -277,11 +410,11 @@ export function useContentEditable({
 			const el = getElement();
 			if (!el) return;
 
-			el.innerHTML = MentionDOM.parseValue(content, mentionTrigger);
+			el.innerHTML = MentionDOM.parseValue(content, mentionTrigger, mentionOptions);
 			updateState(MentionDOM.extractValue(el, mentionTrigger));
 			requestAnimationFrame(() => SelectionUtils.setCursorPosition(el, cursorPosition));
 		},
-		[getElement, mentionTrigger, updateState]
+		[getElement, mentionTrigger, mentionOptions, updateState]
 	);
 
 	const handleUndo = useCallback(() => {
@@ -308,27 +441,37 @@ export function useContentEditable({
 			const sel = SelectionUtils.get();
 			if (!el || !sel || mentionStartRef.current === null) return;
 
+			// If option has children, enter submenu instead of inserting
+			if (option.children && option.children.length > 0) {
+				mentions.enterSubmenu(option);
+				return;
+			}
+
 			// Get text positions
 			const textCursorPos = SelectionUtils.getCursorPosition(el);
 			const textStartPos = mentionStartRef.current;
 
-			// Get serialized value (preserves existing @[Name] syntax)
+			// Get serialized value (preserves existing @[id] syntax)
 			const serialized = getValue();
 
 			// Convert text positions to serialized positions
 			const serStartPos = MentionDOM.textPosToSerializedPos(el, textStartPos, mentionTrigger);
 			const serCursorPos = MentionDOM.textPosToSerializedPos(el, textCursorPos, mentionTrigger);
 
-			// Build new serialized value with the new mention
+			// Build new serialized value with the new mention (using id)
 			const before = serialized.slice(0, serStartPos);
 			const after = serialized.slice(serCursorPos);
-			const newValue = `${before}${mentionTrigger}[${option.label}] ${after}`;
+			const newValue = `${before}${mentionTrigger}[${option.id}] ${after}`;
 
 			// Parse and set HTML (this restores all mention spans including existing ones)
-			el.innerHTML = MentionDOM.parseValue(newValue, mentionTrigger);
+			// We need to include the new option's icon, so we create a temporary options array
+			const allOptions = mentionOptions ? [...mentionOptions, option] : [option];
+			el.innerHTML = MentionDOM.parseValue(newValue, mentionTrigger, flattenOptions(allOptions));
 
 			// Position cursor after the new mention (after the space)
-			const newCursorPos = textStartPos + mentionTrigger.length + option.label.length + 1;
+			// Account for icon space if present
+			const iconOffset = option.icon ? 1 : 0;
+			const newCursorPos = textStartPos + mentionTrigger.length + option.label.length + 1 + iconOffset;
 			SelectionUtils.setCursorPosition(el, newCursorPos);
 
 			// Cleanup
@@ -339,7 +482,7 @@ export function useContentEditable({
 			updateState(newValue);
 			saveToHistory();
 		},
-		[getElement, getValue, mentionTrigger, mentions, updateState, saveToHistory]
+		[getElement, getValue, mentionTrigger, mentionOptions, mentions, updateState, saveToHistory]
 	);
 
 	// ---------------------------------------------------------------------------
@@ -1002,8 +1145,20 @@ export function useContentEditable({
 						e.preventDefault();
 						mentions.selectPrevious();
 						return;
-					case "Enter":
 					case "Tab": {
+						e.preventDefault();
+						const selected = mentions.getSelectedOption();
+						if (selected) {
+							// If item has children, enter submenu; otherwise select it
+							if (selected.children && selected.children.length > 0) {
+								mentions.enterSubmenu(selected);
+							} else {
+								insertMention(selected);
+							}
+						}
+						return;
+					}
+					case "Enter": {
 						e.preventDefault();
 						const selected = mentions.getSelectedOption();
 						if (selected) insertMention(selected);
@@ -1011,13 +1166,14 @@ export function useContentEditable({
 					}
 					case "Escape":
 						e.preventDefault();
-						mentions.closeMenu();
-						mentionStartRef.current = null;
-						mentionEndRef.current = null;
-						return;
-					case "ArrowLeft":
-					case "ArrowRight":
-						// Close menu when navigating away - check will happen in onKeyUp
+						// If in submenu, go back to parent; otherwise close menu
+						if (mentions.isInSubmenu) {
+							mentions.exitSubmenu();
+						} else {
+							mentions.closeMenu();
+							mentionStartRef.current = null;
+							mentionEndRef.current = null;
+						}
 						return;
 				}
 			}
@@ -1076,10 +1232,12 @@ export function useContentEditable({
 			// Shift+Enter allows newline insertion
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
-				onEnter?.(getValue());
+				const el = getElement();
+				const currentMentions = el ? MentionDOM.extractMentions(el) : [];
+				onEnterRef.current?.(getValue(), currentMentions);
 			}
 		},
-		[mentions, insertMention, handleBackspaceOnMention, handleUndo, handleRedo, handleAtomicMentionNavigation, getElement, mentionTrigger, onEnter]
+		[mentions, insertMention, handleBackspaceOnMention, handleUndo, handleRedo, handleAtomicMentionNavigation, getElement, mentionTrigger, getValue]
 	);
 
 	/**
@@ -1142,10 +1300,45 @@ export function useContentEditable({
 	/**
 	 * Handle mousedown to prevent cursor from getting stuck inside mention elements.
 	 * When clicking on a mention, position cursor after it instead.
+	 * When clicking on the delete button, remove the mention.
 	 */
 	const onMouseDown = useCallback(
 		(e: React.MouseEvent<HTMLDivElement>) => {
 			const target = e.target as HTMLElement;
+
+			// Check if we clicked on the delete button
+			const deleteButton = target.closest("[data-mention-delete]") as HTMLElement | null;
+			if (deleteButton) {
+				e.preventDefault();
+				e.stopPropagation();
+
+				const mentionElement = deleteButton.closest("[data-mention]") as HTMLElement | null;
+				if (mentionElement) {
+					const el = getElement();
+					if (!el) return;
+
+					// Position cursor after the mention before removing it
+					const sel = SelectionUtils.get();
+					if (sel) {
+						const range = document.createRange();
+						range.setStartAfter(mentionElement);
+						range.collapse(true);
+						sel.removeAllRanges();
+						sel.addRange(range);
+					}
+
+					// Remove the mention
+					mentionElement.remove();
+
+					// Update state
+					updateState(getValue());
+					saveToHistory();
+
+					// Focus the contenteditable
+					el.focus();
+				}
+				return;
+			}
 
 			// Check if we clicked on a mention or inside one
 			const mentionElement = target.closest("[data-mention]") as HTMLElement | null;
@@ -1182,7 +1375,7 @@ export function useContentEditable({
 			// Focus the contenteditable to ensure it receives keyboard input
 			el.focus();
 		},
-		[getElement]
+		[getElement, getValue, updateState, saveToHistory]
 	);
 
 	const onInput = useCallback(() => {
@@ -1284,7 +1477,7 @@ export function useContentEditable({
 			}
 
 			// Parse the pasted text to convert @[Name] syntax to HTML
-			const parsedHTML = MentionDOM.parseValue(pastedText, mentionTrigger);
+			const parsedHTML = MentionDOM.parseValue(pastedText, mentionTrigger, mentionOptions ? flattenOptions(mentionOptions) : undefined);
 
 			// Create a temp container to hold the parsed content
 			const tempDiv = document.createElement("div");
@@ -1323,7 +1516,9 @@ export function useContentEditable({
 	useEffect(() => {
 		const el = ref.current;
 		if (el && initialValue) {
-			el.innerHTML = MentionDOM.parseValue(initialValue, mentionTrigger);
+			el.innerHTML = MentionDOM.parseValue(initialValue, mentionTrigger, mentionOptions ? flattenOptions(mentionOptions) : undefined);
+			// Initialize the mentions tracking with initial mentions
+			currentMentionsRef.current = MentionDOM.extractMentions(el);
 		}
 	}, []);
 
@@ -1368,6 +1563,10 @@ export function useContentEditable({
 			filteredOptions: mentions.filteredOptions,
 			selectedIndex: mentions.selectedIndex,
 			selectOption: insertMention,
+			enterSubmenu: mentions.enterSubmenu,
+			exitSubmenu: mentions.exitSubmenu,
+			isInSubmenu: mentions.isInSubmenu,
+			setSelectedIndex: mentions.setSelectedIndex,
 		},
 	};
 }

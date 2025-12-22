@@ -54,7 +54,7 @@ describe('Prompt', () => {
 		editableDiv.textContent = 'Hello world';
 		fireEvent.input(editableDiv);
 
-		expect(handleChange).toHaveBeenCalledWith('Hello world');
+		expect(handleChange).toHaveBeenCalledWith('Hello world', []);
 	});
 
 	it('hides placeholder after typing', () => {
@@ -114,17 +114,20 @@ describe('Prompt', () => {
 
 			fireEvent.keyDown(editableDiv, { key: 'Enter' });
 
-			expect(handleEnter).toHaveBeenCalledWith('Hello world');
+			expect(handleEnter).toHaveBeenCalledWith('Hello world', []);
 		});
 
 		it('calls onEnter with serialized mention format', () => {
 			const handleEnter = vi.fn();
-			const { container } = render(<Prompt initialValue="Hi @[John Doe]!" onEnter={handleEnter} />);
+			// Using id format in initial value - will use the default options to find the label
+			const { container } = render(<Prompt initialValue="Hi @[john-doe]!" onEnter={handleEnter} />);
 			const editableDiv = container.querySelector('[contenteditable="true"]')!;
 
 			fireEvent.keyDown(editableDiv, { key: 'Enter' });
 
-			expect(handleEnter).toHaveBeenCalledWith('Hi @[John Doe]!');
+			// Default options have { id: "john-doe", label: "John Doe" }
+			// The mention should be found by id and display with the label
+			expect(handleEnter).toHaveBeenCalledWith('Hi @[john-doe]!', [{ id: 'john-doe', label: 'john-doe' }]);
 		});
 
 		it('does not insert newline when pressing Enter', () => {
@@ -184,12 +187,12 @@ describe('Prompt', () => {
 			// Type first text
 			editableDiv.textContent = 'Hello';
 			fireEvent.input(editableDiv);
-			expect(handleChange).toHaveBeenLastCalledWith('Hello');
+			expect(handleChange).toHaveBeenLastCalledWith('Hello', []);
 
 			// Type second text
 			editableDiv.textContent = 'Hello World';
 			fireEvent.input(editableDiv);
-			expect(handleChange).toHaveBeenLastCalledWith('Hello World');
+			expect(handleChange).toHaveBeenLastCalledWith('Hello World', []);
 
 			// Undo with Ctrl+Z
 			fireEvent.keyDown(editableDiv, { key: 'z', ctrlKey: true });
@@ -750,8 +753,8 @@ describe('Prompt', () => {
 				simulateTypingWithCursor(editableDiv, '@');
 				fireEvent.keyDown(editableDiv, { key: 'Enter' });
 
-				// Should be called with @[Name] format
-				expect(handleChange).toHaveBeenCalledWith(expect.stringContaining('@[John Doe]'));
+				// Should be called with @[id] format (default options use id = label)
+				expect(handleChange).toHaveBeenCalledWith(expect.stringContaining('@[john-doe]'), expect.any(Array));
 			});
 
 			it('inserts mention by clicking on option', () => {
@@ -776,8 +779,8 @@ describe('Prompt', () => {
 				simulateTypingWithCursor(editableDiv, '@');
 				fireEvent.keyDown(editableDiv, { key: 'Enter' });
 
-				// The onChange should include a space after the mention
-				expect(handleChange).toHaveBeenCalledWith('@[John Doe] ');
+				// The onChange should include a space after the mention (using id)
+				expect(handleChange).toHaveBeenCalledWith('@[john-doe] ', expect.any(Array));
 			});
 		});
 
@@ -886,7 +889,8 @@ describe('Prompt', () => {
 				const pill = container.querySelector('[data-mention="important"]');
 				expect(pill).toBeInTheDocument();
 				expect(pill?.textContent).toBe('#important');
-				expect(handleChange).toHaveBeenCalledWith('#[important] ');
+				// Uses id (tag1) in serialized format
+				expect(handleChange).toHaveBeenCalledWith('#[tag1] ', expect.any(Array));
 			});
 		});
 
@@ -1140,6 +1144,1068 @@ describe('Prompt', () => {
 		});
 	});
 
+	describe('Submenus, Dividers, and Titles', () => {
+		const nestedOptions = [
+			{ id: 'title-people', label: 'People', type: 'title' as const },
+			{ id: 'alice', label: 'Alice' },
+			{ id: 'bob', label: 'Bob' },
+			{ id: 'divider-1', label: '', type: 'divider' as const },
+			{ id: 'title-folders', label: 'Folders', type: 'title' as const },
+			{
+				id: 'projects',
+				label: 'Projects',
+				children: [
+					{ id: 'title-active', label: 'Active', type: 'title' as const },
+					{ id: 'project-alpha', label: 'Project Alpha' },
+					{ id: 'project-beta', label: 'Project Beta' },
+					{ id: 'divider-2', label: '', type: 'divider' as const },
+					{
+						id: 'archived',
+						label: 'Archived',
+						children: [
+							{ id: 'old-project', label: 'Old Project' },
+						],
+					},
+				],
+			},
+			{ id: 'documents', label: 'Documents' },
+		];
+
+		describe('Menu Display with Titles and Dividers', () => {
+			it('renders titles as non-selectable headers', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Title should be rendered
+				expect(screen.getByText('People')).toBeInTheDocument();
+				expect(screen.getByText('Folders')).toBeInTheDocument();
+
+				// Titles should have the title class, not item class
+				const titleElements = container.querySelectorAll('.mention-menu-title');
+				expect(titleElements.length).toBe(2);
+			});
+
+			it('renders dividers as separators', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Dividers should be rendered with separator role
+				const dividers = container.querySelectorAll('.mention-menu-divider');
+				expect(dividers.length).toBe(1);
+				expect(dividers[0]).toHaveAttribute('role', 'separator');
+			});
+
+			it('shows items with children with chevron indicator', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Projects should have chevron indicator
+				const projectsItem = screen.getByText('Projects').closest('.mention-menu-item');
+				expect(projectsItem).toHaveClass('mention-menu-item-has-children');
+
+				// Should have chevron SVG
+				const chevron = projectsItem?.querySelector('.mention-menu-chevron');
+				expect(chevron).toBeInTheDocument();
+			});
+		});
+
+		describe('Navigation with Titles and Dividers', () => {
+			it('skips titles when navigating with ArrowDown', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// First selectable item (Alice) should be selected by default (skipping title)
+				const items = container.querySelectorAll('.mention-menu-item');
+				expect(items[0]).toHaveClass('mention-menu-item-selected');
+				expect(items[0]?.textContent).toContain('Alice');
+			});
+
+			it('skips dividers when navigating with ArrowDown', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate down past Alice, Bob (skip divider and title), to Projects
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects (skips divider + title)
+
+				const items = container.querySelectorAll('.mention-menu-item');
+				// Projects should be selected
+				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				expect(selectedItem?.textContent).toContain('Projects');
+			});
+
+			it('skips titles and dividers when navigating with ArrowUp', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+
+				// Now go back up - should skip divider and title
+				fireEvent.keyDown(editableDiv, { key: 'ArrowUp' }); // Bob (skips divider + title)
+
+				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				expect(selectedItem?.textContent).toContain('Bob');
+			});
+
+			it('wraps around when navigating past end, skipping non-selectable items', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Documents (last item)
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Documents
+
+				// Navigate down once more - should wrap to Alice (first selectable)
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' });
+
+				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				expect(selectedItem?.textContent).toContain('Alice');
+			});
+		});
+
+		describe('Entering Submenus with Tab', () => {
+			it('enters submenu when pressing Tab on item with children', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+
+				// Press Tab to enter submenu
+				fireEvent.keyDown(editableDiv, { key: 'Tab' });
+
+				// Should now see submenu items
+				expect(screen.getByText('Project Alpha')).toBeInTheDocument();
+				expect(screen.getByText('Project Beta')).toBeInTheDocument();
+				expect(screen.getByText('Archived')).toBeInTheDocument();
+
+				// Should show Back button
+				expect(screen.getByText('Back')).toBeInTheDocument();
+			});
+
+			it('selects first selectable item in submenu (skipping title)', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects and enter submenu
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter submenu
+
+				// First selectable item should be selected (Project Alpha, not the title)
+				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				expect(selectedItem?.textContent).toContain('Project Alpha');
+			});
+
+			it('inserts mention when pressing Tab on item without children', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Alice doesn't have children, Tab should insert mention
+				fireEvent.keyDown(editableDiv, { key: 'Tab' });
+
+				const mentionPill = container.querySelector('[data-mention="Alice"]');
+				expect(mentionPill).toBeInTheDocument();
+			});
+
+			it('can navigate deeply nested submenus', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter Projects submenu
+
+				// Navigate to Archived
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Project Beta
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Archived (skips divider)
+
+				// Enter Archived submenu
+				fireEvent.keyDown(editableDiv, { key: 'Tab' });
+
+				// Should see deeply nested item
+				expect(screen.getByText('Old Project')).toBeInTheDocument();
+			});
+		});
+
+		describe('Exiting Submenus with Escape', () => {
+			it('exits submenu back to parent when pressing Escape', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects and enter submenu
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter submenu
+
+				// Verify we're in submenu
+				expect(screen.getByText('Project Alpha')).toBeInTheDocument();
+
+				// Press Escape to go back
+				fireEvent.keyDown(editableDiv, { key: 'Escape' });
+
+				// Should be back in root menu
+				expect(screen.getByText('Alice')).toBeInTheDocument();
+				expect(screen.getByText('Bob')).toBeInTheDocument();
+				expect(screen.queryByText('Project Alpha')).not.toBeInTheDocument();
+			});
+
+			it('selects parent item after exiting submenu', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects and enter submenu
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter submenu
+
+				// Press Escape to go back
+				fireEvent.keyDown(editableDiv, { key: 'Escape' });
+
+				// Projects should be selected
+				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				expect(selectedItem?.textContent).toContain('Projects');
+			});
+
+			it('closes menu when pressing Escape at root level', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				expect(screen.getByText('Alice')).toBeInTheDocument();
+
+				// Press Escape at root level
+				fireEvent.keyDown(editableDiv, { key: 'Escape' });
+
+				// Menu should be closed
+				expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+			});
+
+			it('exits multiple levels of submenus with multiple Escapes', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects > Archived
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter Projects
+
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Project Beta
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Archived
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter Archived
+
+				// Verify we're in deepest submenu
+				expect(screen.getByText('Old Project')).toBeInTheDocument();
+
+				// First Escape - back to Projects submenu
+				fireEvent.keyDown(editableDiv, { key: 'Escape' });
+				expect(screen.getByText('Project Alpha')).toBeInTheDocument();
+				expect(screen.queryByText('Old Project')).not.toBeInTheDocument();
+
+				// Second Escape - back to root
+				fireEvent.keyDown(editableDiv, { key: 'Escape' });
+				expect(screen.getByText('Alice')).toBeInTheDocument();
+				expect(screen.queryByText('Project Alpha')).not.toBeInTheDocument();
+
+				// Third Escape - close menu
+				fireEvent.keyDown(editableDiv, { key: 'Escape' });
+				expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+			});
+		});
+
+		describe('Back Button', () => {
+			it('shows Back button when in submenu', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Initially no Back button
+				expect(screen.queryByText('Back')).not.toBeInTheDocument();
+
+				// Enter submenu
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' });
+
+				// Back button should appear
+				expect(screen.getByText('Back')).toBeInTheDocument();
+			});
+
+			it('clicking Back button exits submenu', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Enter submenu
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' });
+
+				// Click Back button
+				const backButton = screen.getByText('Back').closest('.mention-menu-back')!;
+				fireEvent.mouseDown(backButton);
+
+				// Should be back in root menu
+				expect(screen.getByText('Alice')).toBeInTheDocument();
+				expect(screen.queryByText('Project Alpha')).not.toBeInTheDocument();
+			});
+		});
+
+		describe('Selecting Items in Submenus', () => {
+			it('inserts mention from submenu with Enter', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects and enter submenu
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter submenu
+
+				// Select Project Alpha with Enter
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const mentionPill = container.querySelector('[data-mention="Project Alpha"]');
+				expect(mentionPill).toBeInTheDocument();
+			});
+
+			it('inserts mention from submenu by clicking', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to Projects and enter submenu
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter submenu
+
+				// Click on Project Beta
+				const projectBeta = screen.getByText('Project Beta');
+				fireEvent.mouseDown(projectBeta);
+
+				const mentionPill = container.querySelector('[data-mention="Project Beta"]');
+				expect(mentionPill).toBeInTheDocument();
+			});
+
+			it('clicking on item with children enters submenu instead of selecting', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Click on Projects (which has children)
+				const projectsItem = screen.getByText('Projects');
+				fireEvent.mouseDown(projectsItem);
+
+				// Should enter submenu, not insert mention
+				expect(container.querySelector('[data-mention="Projects"]')).not.toBeInTheDocument();
+				expect(screen.getByText('Project Alpha')).toBeInTheDocument();
+			});
+		});
+
+		describe('Hover Selection in Submenus', () => {
+			it('updates selection on hover', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Initially Alice is selected
+				let selectedItem = container.querySelector('.mention-menu-item-selected');
+				expect(selectedItem?.textContent).toContain('Alice');
+
+				// Hover over Bob
+				const bobItem = screen.getByText('Bob').closest('.mention-menu-item')!;
+				fireEvent.mouseEnter(bobItem);
+
+				// Bob should now be selected
+				selectedItem = container.querySelector('.mention-menu-item-selected');
+				expect(selectedItem?.textContent).toContain('Bob');
+			});
+		});
+
+		describe('Search with Flat Results', () => {
+			it('shows flat list of matching items when searching', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Search for "Project" - should find items from nested structure
+				simulateTypingWithCursor(editableDiv, '@Project');
+
+				// Should see Project Alpha, Project Beta from nested submenu as flat list
+				expect(screen.getByText('Project Alpha')).toBeInTheDocument();
+				expect(screen.getByText('Project Beta')).toBeInTheDocument();
+
+				// No Back button since results are flat (not in submenu)
+				expect(screen.queryByText('Back')).not.toBeInTheDocument();
+			});
+
+			it('finds deeply nested items in flat search results', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Search for "Old" - should find deeply nested item
+				simulateTypingWithCursor(editableDiv, '@Old');
+
+				// Should see the deeply nested item in flat results
+				expect(screen.getByText('Old Project')).toBeInTheDocument();
+
+				// Should be able to select it directly with Enter
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const mentionPill = container.querySelector('[data-mention="Old Project"]');
+				expect(mentionPill).toBeInTheDocument();
+			});
+
+			it('search results do not have chevron indicators (no children)', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Search for "Project" 
+				simulateTypingWithCursor(editableDiv, '@Project');
+
+				// Items in search results should not have chevron (children are removed)
+				const items = container.querySelectorAll('.mention-menu-item');
+				items.forEach(item => {
+					expect(item).not.toHaveClass('mention-menu-item-has-children');
+					expect(item.querySelector('.mention-menu-chevron')).not.toBeInTheDocument();
+				});
+			});
+
+			it('can select search result directly without navigating submenu', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Search for "Beta"
+				simulateTypingWithCursor(editableDiv, '@Beta');
+
+				// Should be able to click directly on it
+				const betaItem = screen.getByText('Project Beta');
+				fireEvent.mouseDown(betaItem);
+
+				// Mention should be inserted
+				const mentionPill = container.querySelector('[data-mention="Project Beta"]');
+				expect(mentionPill).toBeInTheDocument();
+			});
+
+			it('clears search and shows full menu when deleting search text', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Type search
+				simulateTypingWithCursor(editableDiv, '@Pro');
+
+				// Verify search is active (only matching items shown)
+				expect(screen.getByText('Projects')).toBeInTheDocument();
+				expect(screen.queryByText('Alice')).not.toBeInTheDocument();
+
+				// Clear search back to just @
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Full menu should be visible again with titles and structure
+				expect(screen.getByText('Alice')).toBeInTheDocument();
+				expect(screen.getByText('People')).toBeInTheDocument(); // Title
+			});
+
+			it('search results exclude titles and dividers', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Search for "Peo" which would match the title "People"
+				simulateTypingWithCursor(editableDiv, '@Peo');
+
+				// Title should NOT appear in search results
+				expect(screen.queryByText('People')).not.toBeInTheDocument();
+
+				// No dividers should appear
+				const dividers = container.querySelectorAll('.mention-menu-divider');
+				expect(dividers.length).toBe(0);
+			});
+
+			it('shows items from multiple levels that match search', () => {
+				const { container } = render(<Prompt mentionOptions={nestedOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Search for "a" - should match Alice, Project Alpha, Archived
+				simulateTypingWithCursor(editableDiv, '@a');
+
+				// All matching items from different levels should appear
+				expect(screen.getByText('Alice')).toBeInTheDocument();
+				expect(screen.getByText('Project Alpha')).toBeInTheDocument();
+				expect(screen.getByText('Archived')).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe('Mention ID Format and Tracking', () => {
+		const optionsWithIds = [
+			{ id: 'user-123', label: 'John Doe' },
+			{ id: 'user-456', label: 'Jane Smith' },
+		];
+
+		describe('ID in @[] Format', () => {
+			it('serializes mention with id instead of label', () => {
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt mentionOptions={optionsWithIds} onChange={handleChange} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select John Doe
+
+				// Should serialize with id (user-123) not label (John Doe)
+				expect(handleChange).toHaveBeenCalledWith(
+					expect.stringContaining('@[user-123]'),
+					expect.any(Array)
+				);
+			});
+
+			it('parses initial value with id and displays label', () => {
+				const { container } = render(
+					<Prompt
+						initialValue="Hello @[user-123]!"
+						mentionOptions={optionsWithIds}
+					/>
+				);
+
+				// Should display the label, not the id
+				const mentionPill = container.querySelector('[data-mention="John Doe"]');
+				expect(mentionPill).toBeInTheDocument();
+				expect(mentionPill?.textContent).toBe('@John Doe');
+
+				// Should have the id stored
+				expect(mentionPill?.getAttribute('data-mention-id')).toBe('user-123');
+			});
+
+			it('falls back to id as label when option not found', () => {
+				const { container } = render(
+					<Prompt
+						initialValue="Hello @[unknown-id]!"
+						mentionOptions={optionsWithIds}
+					/>
+				);
+
+				// Should use the id as both display and id
+				const mentionPill = container.querySelector('[data-mention="unknown-id"]');
+				expect(mentionPill).toBeInTheDocument();
+				expect(mentionPill?.getAttribute('data-mention-id')).toBe('unknown-id');
+			});
+
+			it('stores both id and label in mention pill attributes', () => {
+				const { container } = render(
+					<Prompt mentionOptions={optionsWithIds} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select John Doe
+
+				const mentionPill = container.querySelector('[data-mention]');
+				expect(mentionPill?.getAttribute('data-mention')).toBe('John Doe'); // label
+				expect(mentionPill?.getAttribute('data-mention-id')).toBe('user-123'); // id
+			});
+		});
+
+		describe('onChange with mentions list', () => {
+			it('calls onChange with empty mentions array when no mentions', () => {
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt onChange={handleChange} mentionOptions={optionsWithIds} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				editableDiv.textContent = 'Hello world';
+				fireEvent.input(editableDiv);
+
+				expect(handleChange).toHaveBeenCalledWith('Hello world', []);
+			});
+
+			it('calls onChange with mentions array when content has mentions', () => {
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt onChange={handleChange} mentionOptions={optionsWithIds} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select John Doe
+
+				expect(handleChange).toHaveBeenLastCalledWith(
+					'@[user-123] ',
+					[{ id: 'user-123', label: 'John Doe' }]
+				);
+			});
+
+			it('calls onChange with multiple mentions in array', () => {
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						initialValue="@[user-123] and @[user-456]"
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Trigger a change
+				editableDiv.textContent = '@John Doe and @Jane Smith more';
+
+				// Recreate the mention pills
+				editableDiv.innerHTML = '';
+				const mention1 = document.createElement('span');
+				mention1.setAttribute('data-mention', 'John Doe');
+				mention1.setAttribute('data-mention-id', 'user-123');
+				mention1.setAttribute('contenteditable', 'false');
+				mention1.className = 'mention-pill';
+				mention1.textContent = '@John Doe';
+
+				const mention2 = document.createElement('span');
+				mention2.setAttribute('data-mention', 'Jane Smith');
+				mention2.setAttribute('data-mention-id', 'user-456');
+				mention2.setAttribute('contenteditable', 'false');
+				mention2.className = 'mention-pill';
+				mention2.textContent = '@Jane Smith';
+
+				editableDiv.appendChild(mention1);
+				editableDiv.appendChild(document.createTextNode(' and '));
+				editableDiv.appendChild(mention2);
+				editableDiv.appendChild(document.createTextNode(' more'));
+
+				fireEvent.input(editableDiv);
+
+				expect(handleChange).toHaveBeenLastCalledWith(
+					'@[user-123] and @[user-456] more',
+					expect.arrayContaining([
+						{ id: 'user-123', label: 'John Doe' },
+						{ id: 'user-456', label: 'Jane Smith' },
+					])
+				);
+			});
+		});
+
+		describe('onEnter with mentions list', () => {
+			it('calls onEnter with empty mentions array when no mentions', () => {
+				const handleEnter = vi.fn();
+				const { container } = render(
+					<Prompt onEnter={handleEnter} mentionOptions={optionsWithIds} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				editableDiv.textContent = 'Hello world';
+				fireEvent.input(editableDiv);
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleEnter).toHaveBeenCalledWith('Hello world', []);
+			});
+
+			it('calls onEnter with mentions array when content has mentions', () => {
+				const handleEnter = vi.fn();
+				const { container } = render(
+					<Prompt
+						initialValue="Hello @[user-123]!"
+						onEnter={handleEnter}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleEnter).toHaveBeenCalledWith(
+					'Hello @[user-123]!',
+					[{ id: 'user-123', label: 'John Doe' }]
+				);
+			});
+
+			it('calls onEnter with multiple mentions in array', () => {
+				const handleEnter = vi.fn();
+				const { container } = render(
+					<Prompt
+						initialValue="@[user-123] and @[user-456]"
+						onEnter={handleEnter}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleEnter).toHaveBeenCalledWith(
+					'@[user-123] and @[user-456]',
+					expect.arrayContaining([
+						{ id: 'user-123', label: 'John Doe' },
+						{ id: 'user-456', label: 'Jane Smith' },
+					])
+				);
+			});
+		});
+
+		describe('onMentionAdded callback', () => {
+			it('calls onMentionAdded when mention is inserted via Enter', () => {
+				const handleMentionAdded = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						onMentionAdded={handleMentionAdded}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select John Doe
+
+				expect(handleMentionAdded).toHaveBeenCalledWith({
+					id: 'user-123',
+					label: 'John Doe',
+				});
+			});
+
+			it('calls onMentionAdded when mention is inserted via Tab', () => {
+				const handleMentionAdded = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						onMentionAdded={handleMentionAdded}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Select John Doe
+
+				expect(handleMentionAdded).toHaveBeenCalledWith({
+					id: 'user-123',
+					label: 'John Doe',
+				});
+			});
+
+			it('calls onMentionAdded when mention is inserted via click', () => {
+				const handleMentionAdded = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						onMentionAdded={handleMentionAdded}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Click on Jane Smith option
+				const janeOption = screen.getByText('Jane Smith');
+				fireEvent.mouseDown(janeOption);
+
+				expect(handleMentionAdded).toHaveBeenCalledWith({
+					id: 'user-456',
+					label: 'Jane Smith',
+				});
+			});
+
+			it('calls onMentionAdded for each mention when multiple are added', () => {
+				const handleMentionAdded = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						onMentionAdded={handleMentionAdded}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Add first mention
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select John Doe
+
+				expect(handleMentionAdded).toHaveBeenCalledWith({
+					id: 'user-123',
+					label: 'John Doe',
+				});
+
+				// Add second mention
+				const currentText = editableDiv.textContent || '';
+				simulateTypingWithCursor(editableDiv, currentText + ' @');
+
+				// Need to recreate the first mention pill
+				const mention1 = document.createElement('span');
+				mention1.setAttribute('data-mention', 'John Doe');
+				mention1.setAttribute('data-mention-id', 'user-123');
+				mention1.setAttribute('contenteditable', 'false');
+				mention1.className = 'mention-pill';
+				mention1.textContent = '@John Doe';
+
+				editableDiv.innerHTML = '';
+				editableDiv.appendChild(mention1);
+				editableDiv.appendChild(document.createTextNode(' @'));
+
+				const textNode = editableDiv.lastChild!;
+				const range = document.createRange();
+				range.setStart(textNode, textNode.textContent!.length);
+				range.setEnd(textNode, textNode.textContent!.length);
+				window.getSelection()?.removeAllRanges();
+				window.getSelection()?.addRange(range);
+
+				fireEvent.input(editableDiv);
+
+				// Select Jane Smith
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' });
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleMentionAdded).toHaveBeenCalledWith({
+					id: 'user-456',
+					label: 'Jane Smith',
+				});
+			});
+
+			it('does not call onMentionAdded for initial value mentions', () => {
+				const handleMentionAdded = vi.fn();
+				render(
+					<Prompt
+						initialValue="Hello @[user-123]!"
+						onMentionAdded={handleMentionAdded}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+
+				// onMentionAdded should NOT be called for mentions in initial value
+				expect(handleMentionAdded).not.toHaveBeenCalled();
+			});
+		});
+
+		describe('onMentionDeleted callback', () => {
+			it('calls onMentionDeleted when mention is deleted via backspace', () => {
+				const handleMentionDeleted = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						initialValue="@[user-123] "
+						onMentionDeleted={handleMentionDeleted}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Position cursor right after the mention
+				const mentionPill = container.querySelector('[data-mention="John Doe"]')!;
+				const textNodeAfter = mentionPill.nextSibling;
+
+				const range = document.createRange();
+				if (textNodeAfter) {
+					range.setStart(textNodeAfter, 0);
+				} else {
+					range.setStartAfter(mentionPill);
+				}
+				range.collapse(true);
+				window.getSelection()?.removeAllRanges();
+				window.getSelection()?.addRange(range);
+
+				// Press backspace to delete the mention
+				mentionPill.remove();
+				fireEvent.input(editableDiv);
+
+				expect(handleMentionDeleted).toHaveBeenCalledWith({
+					id: 'user-123',
+					label: 'John Doe',
+				});
+			});
+
+			it('calls onMentionDeleted when mention is deleted via delete button', () => {
+				const handleMentionDeleted = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						initialValue="Hello @[user-123]!"
+						onMentionDeleted={handleMentionDeleted}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+
+				// Find and click the delete button on the mention
+				const deleteButton = container.querySelector('[data-mention-delete]');
+				if (deleteButton) {
+					fireEvent.mouseDown(deleteButton);
+
+					expect(handleMentionDeleted).toHaveBeenCalledWith({
+						id: 'user-123',
+						label: 'John Doe',
+					});
+				}
+			});
+
+			it('calls onMentionDeleted when content is cleared', () => {
+				const handleMentionDeleted = vi.fn();
+				const handleChange = vi.fn();
+
+				const { container } = render(
+					<Prompt
+						initialValue="@[user-123]"
+						onMentionDeleted={handleMentionDeleted}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Clear all content
+				editableDiv.innerHTML = '';
+				fireEvent.input(editableDiv);
+
+				expect(handleMentionDeleted).toHaveBeenCalledWith({
+					id: 'user-123',
+					label: 'John Doe',
+				});
+			});
+
+			it('calls onMentionDeleted for each deleted mention when multiple are removed', () => {
+				const handleMentionDeleted = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						initialValue="@[user-123] and @[user-456]"
+						onMentionDeleted={handleMentionDeleted}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Clear all content
+				editableDiv.innerHTML = '';
+				fireEvent.input(editableDiv);
+
+				expect(handleMentionDeleted).toHaveBeenCalledTimes(2);
+				expect(handleMentionDeleted).toHaveBeenCalledWith({
+					id: 'user-123',
+					label: 'John Doe',
+				});
+				expect(handleMentionDeleted).toHaveBeenCalledWith({
+					id: 'user-456',
+					label: 'Jane Smith',
+				});
+			});
+
+			it('does not call onMentionDeleted when no mentions exist', () => {
+				const handleMentionDeleted = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						initialValue="Hello world"
+						onMentionDeleted={handleMentionDeleted}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Edit content
+				editableDiv.textContent = 'Different text';
+				fireEvent.input(editableDiv);
+
+				expect(handleMentionDeleted).not.toHaveBeenCalled();
+			});
+		});
+
+		describe('Combined add/delete tracking', () => {
+			it('tracks add and delete in sequence', () => {
+				const handleMentionAdded = vi.fn();
+				const handleMentionDeleted = vi.fn();
+				const handleChange = vi.fn();
+				const { container } = render(
+					<Prompt
+						onMentionAdded={handleMentionAdded}
+						onMentionDeleted={handleMentionDeleted}
+						onChange={handleChange}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Add a mention
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleMentionAdded).toHaveBeenCalledTimes(1);
+				expect(handleMentionDeleted).not.toHaveBeenCalled();
+
+				// Delete the mention
+				editableDiv.innerHTML = '';
+				fireEvent.input(editableDiv);
+
+				expect(handleMentionDeleted).toHaveBeenCalledTimes(1);
+			});
+
+			it('calls both onChange and onMentionAdded when mention is added', () => {
+				const handleChange = vi.fn();
+				const handleMentionAdded = vi.fn();
+				const { container } = render(
+					<Prompt
+						onChange={handleChange}
+						onMentionAdded={handleMentionAdded}
+						mentionOptions={optionsWithIds}
+					/>
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleChange).toHaveBeenCalled();
+				expect(handleMentionAdded).toHaveBeenCalled();
+
+				// Verify onChange was called with mentions array
+				const lastCall = handleChange.mock.calls[handleChange.mock.calls.length - 1] as [string, unknown[]];
+				expect(lastCall?.[1]).toEqual([{ id: 'user-123', label: 'John Doe' }]);
+			});
+		});
+	});
+
 	describe('Copy/Paste', () => {
 		/**
 		 * Helper to create a ClipboardEvent with mock data
@@ -1328,7 +2394,7 @@ describe('Prompt', () => {
 				editableDiv.dispatchEvent(event);
 
 				expect(editableDiv.textContent).toBe('Hello World');
-				expect(handleChange).toHaveBeenCalledWith('Hello World');
+				expect(handleChange).toHaveBeenCalledWith('Hello World', []);
 			});
 
 			it('pastes text with serialized mention and converts to pill', () => {
@@ -1341,13 +2407,13 @@ describe('Prompt', () => {
 				editableDiv.appendChild(textNode);
 				setSelection(textNode, 0);
 
-				const { event } = createClipboardEvent('paste', { text: 'Hello @[John Doe]!' });
+				const { event } = createClipboardEvent('paste', { text: 'Hello @[john-doe]!' });
 				editableDiv.dispatchEvent(event);
 
-				// Should have created a mention pill
-				const mentionPill = container.querySelector('[data-mention="John Doe"]');
+				// Should have created a mention pill (with fallback to id as label when not found)
+				const mentionPill = container.querySelector('[data-mention]');
 				expect(mentionPill).toBeInTheDocument();
-				expect(handleChange).toHaveBeenCalledWith('Hello @[John Doe]!');
+				expect(handleChange).toHaveBeenCalledWith('Hello @[john-doe]!', expect.any(Array));
 			});
 
 			it('pastes text at cursor position in middle of existing content', () => {
@@ -1502,6 +2568,50 @@ describe('Prompt', () => {
 				// Undo should revert the paste
 				fireEvent.keyDown(editableDiv, { key: 'z', ctrlKey: true });
 				expect(editableDiv.textContent).toBe('');
+			});
+		});
+	});
+
+	describe('Menu Positioning', () => {
+		const mockOptions = [
+			{ id: 'alice', label: 'Alice' },
+			{ id: 'bob', label: 'Bob' },
+		];
+
+		describe('mentionMenuPosition prop', () => {
+			it('accepts mentionMenuPosition="below" prop', () => {
+				const { container } = render(
+					<Prompt mentionOptions={mockOptions} mentionMenuPosition="below" />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				const menu = container.querySelector('.mention-menu');
+				expect(menu).toBeInTheDocument();
+			});
+
+			it('accepts mentionMenuPosition="above" prop', () => {
+				const { container } = render(
+					<Prompt mentionOptions={mockOptions} mentionMenuPosition="above" />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				const menu = container.querySelector('.mention-menu');
+				expect(menu).toBeInTheDocument();
+			});
+
+			it('menu is fixed positioned', () => {
+				const { container } = render(<Prompt mentionOptions={mockOptions} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				const menu = container.querySelector('.mention-menu') as HTMLElement;
+				expect(menu).toBeInTheDocument();
+				expect(menu.style.position).toBe('fixed');
 			});
 		});
 	});
