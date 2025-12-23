@@ -568,10 +568,10 @@ export const HiddenTrigger: Story = {
 	render: () => (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h3 className="text-sm font-medium text-gray-600 mb-2">With Trigger Shown (default)</h3>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Default behavior (not shown)</h3>
 				<Prompt
 					placeholder="Type @ to mention..."
-					mentionConfigs={[{ trigger: '@', options: peopleOptions, showTrigger: true }]}
+					mentionConfigs={[{ trigger: '@', options: peopleOptions }]}
 				/>
 			</div>
 			<div>
