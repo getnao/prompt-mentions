@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useLayoutEffect } from "react";
+import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
 import type { MentionOption, CaretRect } from "../../hooks/useMentions";
 
 export type MentionMenuPosition = "above" | "below";
@@ -15,13 +15,15 @@ export interface MentionMenuProps {
 	isInSubmenu?: boolean;
 	onHoverIndex?: (index: number) => void;
 	onClose?: () => void;
+	/** Set to true when keyboard navigation occurs to temporarily disable hover selection */
+	isKeyboardNavigating?: boolean;
+	/** Callback to clear keyboard navigation mode when mouse moves */
+	onMouseActivity?: () => void;
 }
 
 const ChevronRight = () => (
 	<svg
 		className="mention-menu-chevron"
-		width="16"
-		height="16"
 		viewBox="0 0 16 16"
 		fill="none"
 		xmlns="http://www.w3.org/2000/svg"
@@ -29,7 +31,7 @@ const ChevronRight = () => (
 		<path
 			d="M6 4L10 8L6 12"
 			stroke="currentColor"
-			strokeWidth="1.5"
+			strokeWidth="1"
 			strokeLinecap="round"
 			strokeLinejoin="round"
 		/>
@@ -48,7 +50,7 @@ const ChevronLeft = () => (
 		<path
 			d="M10 4L6 8L10 12"
 			stroke="currentColor"
-			strokeWidth="1.5"
+			strokeWidth="1"
 			strokeLinecap="round"
 			strokeLinejoin="round"
 		/>
@@ -69,10 +71,22 @@ const MentionMenu = ({
 	isInSubmenu = false,
 	onHoverIndex,
 	onClose,
+	isKeyboardNavigating = false,
+	onMouseActivity,
 }: MentionMenuProps) => {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const [actualPosition, setActualPosition] = useState<"above" | "below">(preferredPosition);
 	const [menuHeight, setMenuHeight] = useState(0);
+
+	// Handle mouse move on items - switches to mouse navigation mode and selects
+	const handleItemMouseMove = useCallback((index: number) => {
+		if (isKeyboardNavigating) {
+			// Switch from keyboard to mouse navigation
+			onMouseActivity?.();
+		}
+		// Always update selection on mouse move (mouse now has precedence)
+		onHoverIndex?.(index);
+	}, [isKeyboardNavigating, onMouseActivity, onHoverIndex]);
 
 	// Handle clicks outside the menu to close it
 	useEffect(() => {
@@ -85,7 +99,7 @@ const MentionMenu = ({
 			// Don't close if clicking inside the prompt input (let the input handle it)
 			const promptInput = (target as Element).closest?.(".prompt-input");
 			if (promptInput) return;
-			
+
 			onClose();
 		};
 
@@ -147,27 +161,13 @@ const MentionMenu = ({
 	return (
 		<div
 			ref={menuRef}
-			className="mention-menu"
+			className={`mention-menu${isKeyboardNavigating ? ' keyboard-navigating' : ''}`}
 			style={{
 				position: "fixed",
 				top: Math.max(MENU_SPACING, top), // Ensure it doesn't go above viewport
 				left: caretRect.left,
 			}}
 		>
-			{/* Back button when in submenu */}
-			{isInSubmenu && onExitSubmenu && (
-				<div
-					className="mention-menu-back"
-					onMouseDown={(e) => {
-						e.preventDefault();
-						onExitSubmenu();
-					}}
-				>
-					<ChevronLeft />
-					<span>Back</span>
-				</div>
-			)}
-
 			{options.map((option, index) => {
 				// Handle dividers
 				if (option.type === 'divider') {
@@ -207,15 +207,14 @@ const MentionMenu = ({
 							} ${hasChildren ? "mention-menu-item-has-children" : ""}`}
 						onMouseDown={(e) => {
 							e.preventDefault();
+							e.stopPropagation();
 							if (hasChildren && onEnterSubmenu) {
 								onEnterSubmenu(option);
 							} else {
 								onSelect(option);
 							}
 						}}
-						onMouseEnter={() => {
-							onHoverIndex?.(index);
-						}}
+						onMouseMove={() => handleItemMouseMove(index)}
 					>
 						{option.icon && (
 							<span className="mention-menu-item-icon">{option.icon}</span>

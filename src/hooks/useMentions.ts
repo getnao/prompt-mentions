@@ -62,6 +62,10 @@ export interface UseMentionsReturn {
 	getOptionsForTrigger: (trigger: string) => MentionOption[];
 	/** Get all configured triggers */
 	triggers: string[];
+	/** True when keyboard navigation is active (arrow keys were used) */
+	isKeyboardNavigating: boolean;
+	/** Call this when mouse activity is detected to exit keyboard navigation mode */
+	clearKeyboardNavigation: () => void;
 }
 
 const DEFAULT_OPTIONS: MentionOption[] = [
@@ -175,6 +179,7 @@ export function useMentions({
 		activeTrigger: triggers[0] ?? "@",
 	});
 	const [selectedIndex, setSelectedIndex] = useState(0);
+	const [isKeyboardNavigating, setIsKeyboardNavigating] = useState(false);
 
 	// Get options for the active trigger
 	const activeOptions = configsMap.get(menuState.activeTrigger) ?? [];
@@ -231,6 +236,7 @@ export function useMentions({
 	}, [configsMap]);
 
 	const selectNext = useCallback(() => {
+		setIsKeyboardNavigating(true);
 		setSelectedIndex((prev) => {
 			const nextIndex = findNextSelectableIndex(filteredOptions, prev, 1);
 			return nextIndex >= 0 ? nextIndex : prev;
@@ -238,11 +244,16 @@ export function useMentions({
 	}, [filteredOptions]);
 
 	const selectPrevious = useCallback(() => {
+		setIsKeyboardNavigating(true);
 		setSelectedIndex((prev) => {
 			const nextIndex = findNextSelectableIndex(filteredOptions, prev, -1);
 			return nextIndex >= 0 ? nextIndex : prev;
 		});
 	}, [filteredOptions]);
+
+	const clearKeyboardNavigation = useCallback(() => {
+		setIsKeyboardNavigating(false);
+	}, []);
 
 	const getSelectedOption = useCallback((): MentionOption | null => {
 		return filteredOptions[selectedIndex] ?? null;
@@ -300,6 +311,8 @@ export function useMentions({
 		setSelectedIndex,
 		getOptionsForTrigger,
 		triggers,
+		isKeyboardNavigating,
+		clearKeyboardNavigation,
 	};
 }
 

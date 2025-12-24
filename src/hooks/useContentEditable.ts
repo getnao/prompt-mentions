@@ -480,6 +480,8 @@ export function useContentEditable({
 			setSelectedIndex: mentions.setSelectedIndex,
 			activeTrigger: mentions.activeTrigger,
 			closeMenu,
+			isKeyboardNavigating: mentions.isKeyboardNavigating,
+			clearKeyboardNavigation: mentions.clearKeyboardNavigation,
 		},
 	};
 }

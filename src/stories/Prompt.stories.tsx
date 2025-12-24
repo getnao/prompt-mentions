@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Prompt from '../components/Prompt/Prompt';
 import type { MentionOption } from '../hooks/useMentions';
 import type { SelectedMention } from '../hooks/useContentEditable';
+import { Files, BookOpen, SquareTerminal, MessageSquare } from 'lucide-react';
 
 // Example icons as React components
 const UserIcon = () => (
@@ -43,6 +44,11 @@ const meta = {
 		docs: {
 			description: {
 				component: 'A text input component that highlights @mentions with a pill design. Type the trigger character (@ by default) to open a mention menu. Supports nested menus, icons, dividers, and section titles.',
+			},
+		},
+		backgrounds: {
+			options: {
+				dark: { name: 'Dark', value: '#1F2126' },
 			},
 		},
 	},
@@ -208,6 +214,68 @@ export const WithPlaceholder: Story = {
 		placeholder: 'Type @ to mention someone...',
 		mentionConfigs: [{ trigger: '@', options: defaultOptions }],
 	},
+};
+
+const cursorMentionOptions: MentionOption[] = [
+	{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx' },
+	{ id: 'src/index.css', label: 'index.css' },
+	{ id: 'src/stories/Prompt.stories.tsx', label: 'Prompt.stories.tsx' },
+	{ type: 'divider', label: '', id: 'divider-1' },
+	{
+		label: 'Files & Folders', id: 'title-files', icon: <Files strokeWidth={1} />, children: [
+			{ id: 'files-folders', label: 'Files & Folders', type: 'title' },
+			{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx' },
+			{ id: 'src/index.css', label: 'index.css' },
+			{ id: 'src/stories/Prompt.stories.tsx', label: 'MentionMenu.stories.tsx' },
+			{ id: 'src/stories.css', label: 'stories.css' },
+			{ id: 'src/utils/formatDate.ts', label: 'formatDate.ts' },
+			{ id: 'src/hooks/useDebounce.ts', label: 'useDebounce.ts' },
+			{ id: 'src/components/Button/Button.tsx', label: 'Button.tsx' },
+			{ id: 'src/api/endpoints.ts', label: 'endpoints.ts' },
+			{ id: 'src/types/User.ts', label: 'User.ts' },
+			{ id: 'src/services/authService.ts', label: 'authService.ts' },
+			{ id: 'src/constants/config.ts', label: 'config.ts' },
+			{ id: 'src/components/Modal/Modal.tsx', label: 'Modal.tsx' },
+			{ id: 'src/helpers/validation.ts', label: 'validation.ts' },
+			{ id: 'src/context/ThemeContext.tsx', label: 'ThemeContext.tsx' },
+			{ id: 'src/lib/analytics.ts', label: 'analytics.ts' },
+			{ id: 'src/components/Header/Header.tsx', label: 'Header.tsx' },
+			{ id: 'src/utils/parseQuery.ts', label: 'parseQuery.ts' },
+			{ id: 'src/middleware/errorHandler.ts', label: 'errorHandler.ts' },
+		]
+	},
+	{
+		label: 'Docs', id: 'title-docs', icon: <BookOpen strokeWidth={1} />, children: [
+			{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx' },
+			{ id: 'src/index.css', label: 'index.css' },
+			{ id: 'src/stories/Prompt.stories.tsx', label: 'Prompt.stories.tsx' },
+		]
+	},
+	{
+		label: 'Terminal', id: 'title-terminal', icon: <SquareTerminal strokeWidth={1} />, children: [
+			{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx' },
+			{ id: 'src/index.css', label: 'index.css' },
+			{ id: 'src/stories/Prompt.stories.tsx', label: 'Prompt.stories.tsx' },
+		]
+	},
+	{
+		label: 'Past Chats', id: 'title-past-chats', icon: <MessageSquare strokeWidth={1} />, children: [
+			{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx' },
+			{ id: 'src/index.css', label: 'index.css' },
+			{ id: 'src/stories/Prompt.stories.tsx', label: 'Prompt.stories.tsx' },
+		]
+	},
+];
+
+export const CustomTheme: Story = {
+	args: {
+		placeholder: 'Type @ to mention someone...',
+		mentionConfigs: [{ trigger: '@', options: cursorMentionOptions, menuPosition: 'above' }],
+		theme: 'cursor-dark-theme',
+	},
+	globals: {
+		backgrounds: { value: 'dark' }
+	}
 };
 
 export const WithCustomMentionTrigger: Story = {

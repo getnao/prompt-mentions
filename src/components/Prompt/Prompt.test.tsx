@@ -1308,9 +1308,6 @@ describe('Prompt', () => {
 				expect(screen.getByText('Project Alpha')).toBeInTheDocument();
 				expect(screen.getByText('Project Beta')).toBeInTheDocument();
 				expect(screen.getByText('Archived')).toBeInTheDocument();
-
-				// Should show Back button
-				expect(screen.getByText('Back')).toBeInTheDocument();
 			});
 
 			it('selects first selectable item in submenu (skipping title)', () => {
@@ -1456,46 +1453,6 @@ describe('Prompt', () => {
 			});
 		});
 
-		describe('Back Button', () => {
-			it('shows Back button when in submenu', () => {
-				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
-				const editableDiv = container.querySelector('[contenteditable="true"]')!;
-
-				simulateTypingWithCursor(editableDiv, '@');
-
-				// Initially no Back button
-				expect(screen.queryByText('Back')).not.toBeInTheDocument();
-
-				// Enter submenu
-				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
-				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
-				fireEvent.keyDown(editableDiv, { key: 'Tab' });
-
-				// Back button should appear
-				expect(screen.getByText('Back')).toBeInTheDocument();
-			});
-
-			it('clicking Back button exits submenu', () => {
-				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
-				const editableDiv = container.querySelector('[contenteditable="true"]')!;
-
-				simulateTypingWithCursor(editableDiv, '@');
-
-				// Enter submenu
-				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
-				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects
-				fireEvent.keyDown(editableDiv, { key: 'Tab' });
-
-				// Click Back button
-				const backButton = screen.getByText('Back').closest('.mention-menu-back')!;
-				fireEvent.mouseDown(backButton);
-
-				// Should be back in root menu
-				expect(screen.getByText('Alice')).toBeInTheDocument();
-				expect(screen.queryByText('Project Alpha')).not.toBeInTheDocument();
-			});
-		});
-
 		describe('Selecting Items in Submenus', () => {
 			it('inserts mention from submenu with Enter', () => {
 				const { container } = render(<Prompt mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />);
@@ -1561,9 +1518,9 @@ describe('Prompt', () => {
 				let selectedItem = container.querySelector('.mention-menu-item-selected');
 				expect(selectedItem?.textContent).toContain('Alice');
 
-				// Hover over Bob
+				// Move mouse over Bob (mouseMove triggers hover selection, not mouseEnter)
 				const bobItem = screen.getByText('Bob').closest('.mention-menu-item')!;
-				fireEvent.mouseEnter(bobItem);
+				fireEvent.mouseMove(bobItem);
 
 				// Bob should now be selected
 				selectedItem = container.querySelector('.mention-menu-item-selected');

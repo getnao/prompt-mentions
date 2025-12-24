@@ -3,6 +3,8 @@ import type { MentionOption } from "../../hooks/useMentions";
 import type { SelectedMention } from "../../hooks/useContentEditable";
 import MentionMenu from "./MentionMenu";
 
+export type Theme = "default" | "cursor-dark-theme";
+
 export type MentionMenuPosition = "above" | "below";
 
 /** Configuration for a single mention trigger */
@@ -27,8 +29,8 @@ export interface PromptProps {
 	onMentionAdded?: (mention: SelectedMention) => void;
 	onMentionDeleted?: (mention: SelectedMention) => void;
 	placeholder?: string;
-	/** Configure mention triggers with their options and settings. Defaults to @ trigger with no options. */
 	mentionConfigs?: MentionConfig[];
+	theme?: Theme;
 }
 
 const Prompt = (props: PromptProps) => {
@@ -40,6 +42,7 @@ const Prompt = (props: PromptProps) => {
 		onMentionDeleted,
 		placeholder = "",
 		mentionConfigs = DEFAULT_CONFIG,
+		theme = "default",
 	} = props;
 
 	const { ref, isEmpty, handlers, mentions } = useContentEditable({
@@ -56,7 +59,7 @@ const Prompt = (props: PromptProps) => {
 	const activeMenuPosition = activeConfig?.menuPosition ?? "below";
 
 	return (
-		<div className="relative">
+		<div className={`relative prompt-container ${theme === 'default' ? '' : theme}`}>
 			<div
 				ref={ref}
 				contentEditable
@@ -80,6 +83,8 @@ const Prompt = (props: PromptProps) => {
 				isInSubmenu={mentions.isInSubmenu}
 				onHoverIndex={mentions.setSelectedIndex}
 				onClose={mentions.closeMenu}
+				isKeyboardNavigating={mentions.isKeyboardNavigating}
+				onMouseActivity={mentions.clearKeyboardNavigation}
 			/>
 		</div>
 	);

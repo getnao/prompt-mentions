@@ -57,6 +57,10 @@ export interface UseContentEditableReturn {
 		setSelectedIndex: (index: number) => void;
 		activeTrigger: string;
 		closeMenu: () => void;
+		/** True when keyboard navigation is active (arrow keys were used) */
+		isKeyboardNavigating: boolean;
+		/** Call this when mouse activity is detected to exit keyboard navigation mode */
+		clearKeyboardNavigation: () => void;
 	};
 }
 
