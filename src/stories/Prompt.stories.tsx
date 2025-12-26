@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Prompt from '../components/Prompt/Prompt';
 import type { MentionOption } from '../hooks/useMentions';
 import type { SelectedMention } from '../hooks/useContentEditable';
-import { Files, BookOpen, SquareTerminal, MessageSquare } from 'lucide-react';
+import { Files, BookOpen, SquareTerminal, MessageSquare, File } from 'lucide-react';
 
 // Example icons as React components
 const UserIcon = () => (
@@ -177,38 +177,6 @@ export const WithNestedMenus: Story = {
 	},
 };
 
-export const Comparison: Story = {
-	name: 'Comparison',
-	render: () => (
-		<div className="flex flex-col gap-8">
-			<div>
-				<h3 className="text-sm font-medium text-gray-600 mb-2">Default (Type @ to mention)</h3>
-				<Prompt placeholder="Type @ to mention someone..." mentionConfigs={[{ trigger: '@', options: defaultOptions }]} />
-			</div>
-			<div>
-				<h3 className="text-sm font-medium text-gray-600 mb-2">With Custom Mention Trigger (#)</h3>
-				<Prompt placeholder="Type # to mention someone..." mentionConfigs={[{ trigger: '#', options: defaultOptions }]} />
-			</div>
-			<div>
-				<h3 className="text-sm font-medium text-gray-600 mb-2">With Initial Value (mention rendered as pill)</h3>
-				<Prompt initialValue="Hello, @[John Doe]!" mentionConfigs={[{ trigger: '@', options: defaultOptions }]} />
-			</div>
-			<div>
-				<h3 className="text-sm font-medium text-gray-600 mb-2">Without Placeholder</h3>
-				<Prompt placeholder="" mentionConfigs={[{ trigger: '@', options: defaultOptions }]} />
-			</div>
-			<div>
-				<h3 className="text-sm font-medium text-gray-600 mb-2">With Nested Menus (Tab to enter, Esc to go back)</h3>
-				<Prompt placeholder="Type @ to browse nested menus..." mentionConfigs={[{ trigger: '@', options: nestedOptions }]} />
-			</div>
-			<div>
-				<h3 className="text-sm font-medium text-gray-600 mb-2">Menu Position Above (with smart fallback)</h3>
-				<Prompt placeholder="Type @ - menu appears above..." mentionConfigs={[{ trigger: '@', options: nestedOptions, menuPosition: 'above' }]} />
-			</div>
-		</div>
-	),
-};
-
 export const WithPlaceholder: Story = {
 	args: {
 		placeholder: 'Type @ to mention someone...',
@@ -217,7 +185,7 @@ export const WithPlaceholder: Story = {
 };
 
 const cursorMentionOptions: MentionOption[] = [
-	{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx' },
+	{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx', icon: <File /> },
 	{ id: 'src/index.css', label: 'index.css' },
 	{ id: 'src/stories/Prompt.stories.tsx', label: 'Prompt.stories.tsx' },
 	{ type: 'divider', label: '', id: 'divider-1' },
@@ -267,11 +235,15 @@ const cursorMentionOptions: MentionOption[] = [
 	},
 ];
 
-export const CustomTheme: Story = {
+export const CursorDarkTheme: Story = {
 	args: {
 		placeholder: 'Type @ to mention someone...',
 		mentionConfigs: [{ trigger: '@', options: cursorMentionOptions, menuPosition: 'above' }],
 		theme: 'cursor-dark-theme',
+		initialValue: 'I want to change the @[src/components/Prompt/Prompt.tsx] to fix the bug.',
+		onMentionClick: (mention: SelectedMention) => {
+			alert(`Mention clicked!\n\nID: ${mention.id}\nLabel: ${mention.label}\nTrigger: ${mention.trigger}`);
+		},
 	},
 	globals: {
 		backgrounds: { value: 'dark' }
@@ -665,6 +637,45 @@ export const HiddenTrigger: Story = {
 		docs: {
 			description: {
 				story: 'The `showTrigger` option controls whether the trigger character (like @) appears in the mention pill. When set to `false`, mentions display as just the label without the trigger prefix.',
+			},
+		},
+	},
+};
+
+// Clickable mentions showcase
+export const ClickableMentions: Story = {
+	name: 'Clickable Mentions (onMentionClick)',
+	render: () => (
+		<div className="flex flex-col gap-6">
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Click on a mention pill to see its ID</h3>
+				<Prompt
+					initialValue="Hello @[alice]! Can you review the @[main-ts] file?"
+					placeholder="Type @ to add mentions, then click on them..."
+					mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+					onMentionClick={(mention: SelectedMention) => {
+						alert(`Mention clicked!\n\nID: ${mention.id}\nLabel: ${mention.label}\nTrigger: ${mention.trigger}`);
+					}}
+				/>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Custom action on click (console log)</h3>
+				<Prompt
+					initialValue="Check out #[feature-request] and #[bug-fix] tags"
+					placeholder="Type # to add tags..."
+					mentionConfigs={[{ trigger: '#', options: tagOptions }]}
+					onMentionClick={(mention: SelectedMention) => {
+						console.log('Mention clicked:', mention);
+						alert(`Opening tag: ${mention.label}`);
+					}}
+				/>
+			</div>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story: 'The `onMentionClick` callback is triggered when a user clicks on a mention pill. This can be used to open a profile, navigate to a file, or perform any custom action.',
 			},
 		},
 	},

@@ -28,6 +28,8 @@ export interface PromptProps {
 	onEnter?: (value: string, mentions: SelectedMention[]) => void;
 	onMentionAdded?: (mention: SelectedMention) => void;
 	onMentionDeleted?: (mention: SelectedMention) => void;
+	/** Called when a mention pill is clicked */
+	onMentionClick?: (mention: SelectedMention) => void;
 	placeholder?: string;
 	mentionConfigs?: MentionConfig[];
 	theme?: Theme;
@@ -40,6 +42,7 @@ const Prompt = (props: PromptProps) => {
 		onEnter,
 		onMentionAdded,
 		onMentionDeleted,
+		onMentionClick,
 		placeholder = "",
 		mentionConfigs = DEFAULT_CONFIG,
 		theme = "default",
@@ -52,6 +55,7 @@ const Prompt = (props: PromptProps) => {
 		onEnter,
 		onMentionAdded,
 		onMentionDeleted,
+		onMentionClick,
 	});
 
 	// Get the menu position for the currently active trigger
@@ -59,7 +63,7 @@ const Prompt = (props: PromptProps) => {
 	const activeMenuPosition = activeConfig?.menuPosition ?? "below";
 
 	return (
-		<div className={`relative prompt-container ${theme === 'default' ? '' : theme}`}>
+		<div className={`relative ${theme === 'default' ? '' : theme}`}>
 			<div
 				ref={ref}
 				contentEditable
@@ -83,8 +87,6 @@ const Prompt = (props: PromptProps) => {
 				isInSubmenu={mentions.isInSubmenu}
 				onHoverIndex={mentions.setSelectedIndex}
 				onClose={mentions.closeMenu}
-				isKeyboardNavigating={mentions.isKeyboardNavigating}
-				onMouseActivity={mentions.clearKeyboardNavigation}
 			/>
 		</div>
 	);

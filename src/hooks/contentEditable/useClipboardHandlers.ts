@@ -3,13 +3,8 @@ import type { MentionConfig } from "./types";
 import { MentionDOM } from "./mentionDOM";
 import { SelectionUtils } from "./selectionUtils";
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export interface UseClipboardHandlersOptions {
 	getElement: () => HTMLDivElement | null;
-	getValue: () => string;
 	triggers: string[];
 	mentionConfigs: MentionConfig[];
 	onContentChanged: () => void;
@@ -21,13 +16,8 @@ export interface UseClipboardHandlersReturn {
 	onPaste: (e: React.ClipboardEvent<HTMLDivElement>) => void;
 }
 
-// ============================================================================
-// Hook
-// ============================================================================
-
 export function useClipboardHandlers({
 	getElement,
-	getValue,
 	triggers,
 	mentionConfigs,
 	onContentChanged,

@@ -33,11 +33,7 @@ export interface MentionTriggerConfig {
 }
 
 export interface UseMentionsOptions {
-	/** @deprecated Use configs instead */
-	trigger?: string;
-	/** @deprecated Use configs instead */
-	options?: MentionOption[] | undefined;
-	/** Multiple trigger configurations */
+	/** Mention trigger configurations */
 	configs?: MentionTriggerConfig[];
 }
 
@@ -67,11 +63,6 @@ export interface UseMentionsReturn {
 	/** Call this when mouse activity is detected to exit keyboard navigation mode */
 	clearKeyboardNavigation: () => void;
 }
-
-const DEFAULT_OPTIONS: MentionOption[] = [
-	{ id: "john-doe", label: "John Doe" },
-	{ id: "jane-smith", label: "Jane Smith" },
-];
 
 const isSelectableItem = (option: MentionOption): boolean => {
 	return option.type !== 'divider' && option.type !== 'title';
@@ -152,22 +143,19 @@ const filterOptionsFlat = (options: MentionOption[], searchText: string): Mentio
 };
 
 export function useMentions({
-	trigger = "@",
-	options = DEFAULT_OPTIONS,
-	configs,
+	configs = [],
 }: UseMentionsOptions = {}): UseMentionsReturn {
-	// Build configs map from either new configs prop or legacy props
 	const configsMap = useMemo(() => {
-		if (configs && configs.length > 0) {
-			const map = new Map<string, MentionOption[]>();
-			for (const config of configs) {
-				map.set(config.trigger, config.options);
-			}
-			return map;
+		const map = new Map<string, MentionOption[]>();
+		for (const config of configs) {
+			map.set(config.trigger, config.options);
 		}
-		// Legacy single trigger
-		return new Map([[trigger, options]]);
-	}, [configs, trigger, options]);
+		// Default fallback if no configs provided
+		if (map.size === 0) {
+			map.set("@", []);
+		}
+		return map;
+	}, [configs]);
 
 	const triggers = useMemo(() => Array.from(configsMap.keys()), [configsMap]);
 

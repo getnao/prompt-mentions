@@ -1,15 +1,16 @@
-import type { MentionOption } from "../useMentions";
-import type { useMentions } from "../useMentions";
-
-// ============================================================================
-// Types
-// ============================================================================
+import type { MentionOption, UseMentionsReturn } from "../useMentions";
 
 export interface SelectedMention {
 	id: string;
 	label: string;
 	/** The trigger character used for this mention (e.g., "@", "#") */
 	trigger: string;
+}
+
+export interface MentionRefs {
+	mentionStart: React.MutableRefObject<number | null>;
+	mentionEnd: React.MutableRefObject<number | null>;
+	activeTrigger: React.MutableRefObject<string | null>;
 }
 
 /** Configuration for a single mention trigger */
@@ -31,6 +32,8 @@ export interface UseContentEditableOptions {
 	onEnter?: ((value: string, mentions: SelectedMention[]) => void) | undefined;
 	onMentionAdded?: ((mention: SelectedMention) => void) | undefined;
 	onMentionDeleted?: ((mention: SelectedMention) => void) | undefined;
+	/** Called when a mention pill is clicked */
+	onMentionClick?: ((mention: SelectedMention) => void) | undefined;
 }
 
 export interface UseContentEditableReturn {
@@ -47,7 +50,7 @@ export interface UseContentEditableReturn {
 		onPaste: (e: React.ClipboardEvent<HTMLDivElement>) => void;
 	};
 	mentions: {
-		menuState: ReturnType<typeof useMentions>["menuState"];
+		menuState: UseMentionsReturn["menuState"];
 		filteredOptions: MentionOption[];
 		selectedIndex: number;
 		selectOption: (option: MentionOption) => void;

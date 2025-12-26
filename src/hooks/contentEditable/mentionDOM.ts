@@ -3,10 +3,6 @@ import type { ReactNode } from "react";
 import type { MentionOption } from "../useMentions";
 import type { MentionConfig, SelectedMention } from "./types";
 
-// ============================================================================
-// String Utilities
-// ============================================================================
-
 export const escapeRegex = (str: string): string =>
 	str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -27,10 +23,6 @@ export const flattenOptions = (options: MentionOption[]): MentionOption[] => {
 	return result;
 };
 
-// ============================================================================
-// Icon Utilities
-// ============================================================================
-
 export const iconToHTML = (icon: ReactNode): string => {
 	if (!icon) return "";
 	if (typeof icon === "string") return icon;
@@ -40,10 +32,6 @@ export const iconToHTML = (icon: ReactNode): string => {
 		return "";
 	}
 };
-
-// ============================================================================
-// Mention DOM Utilities
-// ============================================================================
 
 export const MentionDOM = {
 	createHTML(id: string, label: string, trigger: string, icon?: ReactNode, showTrigger = false): string {

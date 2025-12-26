@@ -12,7 +12,8 @@ export { useMentionNavigation } from "./contentEditable/useMentionNavigation";
 export type { UseMentionNavigationOptions, UseMentionNavigationReturn } from "./contentEditable/useMentionNavigation";
 
 export { useMentionInsertion } from "./contentEditable/useMentionInsertion";
-export type { UseMentionInsertionOptions, UseMentionInsertionReturn, MentionRefs } from "./contentEditable/useMentionInsertion";
+export type { UseMentionInsertionOptions, UseMentionInsertionReturn } from "./contentEditable/useMentionInsertion";
+export type { MentionRefs } from "./contentEditable/types";
 
 export { useMentionTrigger } from "./contentEditable/useMentionTrigger";
 export type { UseMentionTriggerOptions, UseMentionTriggerReturn } from "./contentEditable/useMentionTrigger";

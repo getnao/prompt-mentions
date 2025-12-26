@@ -1,18 +1,8 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import type { MentionOption } from "../useMentions";
-import type { MentionConfig, SelectedMention } from "./types";
+import type { MentionConfig, MentionRefs } from "./types";
 import { MentionDOM } from "./mentionDOM";
 import { SelectionUtils } from "./selectionUtils";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-export interface MentionRefs {
-	mentionStart: React.MutableRefObject<number | null>;
-	mentionEnd: React.MutableRefObject<number | null>;
-	activeTrigger: React.MutableRefObject<string | null>;
-}
 
 export interface UseMentionInsertionOptions {
 	getElement: () => HTMLDivElement | null;

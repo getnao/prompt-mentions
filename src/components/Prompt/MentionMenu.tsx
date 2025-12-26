@@ -169,11 +169,15 @@ const MentionMenu = ({
 			}}
 		>
 			{options.map((option, index) => {
+				// Use index as part of key to handle duplicate option IDs
+				// (e.g., same file appearing in multiple categories)
+				const uniqueKey = `${index}-${option.id}`;
+
 				// Handle dividers
 				if (option.type === 'divider') {
 					return (
 						<div
-							key={option.id}
+							key={uniqueKey}
 							className="mention-menu-divider"
 							role="separator"
 						/>
@@ -184,7 +188,7 @@ const MentionMenu = ({
 				if (option.type === 'title') {
 					return (
 						<div
-							key={option.id}
+							key={uniqueKey}
 							className="mention-menu-title"
 						>
 							{option.icon && (
@@ -201,7 +205,7 @@ const MentionMenu = ({
 
 				return (
 					<div
-						key={option.id}
+						key={uniqueKey}
 						data-index={index}
 						className={`mention-menu-item ${isSelected ? "mention-menu-item-selected" : ""
 							} ${hasChildren ? "mention-menu-item-has-children" : ""}`}

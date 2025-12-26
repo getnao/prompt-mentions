@@ -662,6 +662,40 @@ describe('Prompt', () => {
 
 				expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
 			});
+
+			it('renders menu correctly when options have duplicate IDs', () => {
+				// This can happen when the same file appears in multiple categories
+				// e.g., "Recent Files" and "All Files" both showing the same file
+				const optionsWithDuplicateIds: MentionOption[] = [
+					{ id: 'title-recent', label: 'Recent', type: 'title' },
+					{ id: 'src/stories/Prompt.stories.tsx', label: 'Prompt.stories.tsx (Recent)' },
+					{ id: 'divider-1', label: '', type: 'divider' },
+					{ id: 'title-all', label: 'All Files', type: 'title' },
+					{ id: 'src/stories/Prompt.stories.tsx', label: 'Prompt.stories.tsx (All)' }, // Same ID!
+					{ id: 'src/index.ts', label: 'index.ts' },
+				];
+
+				const consoleError = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+				const { container } = render(
+					<Prompt mentionConfigs={[{ trigger: '@', options: optionsWithDuplicateIds }]} />
+				);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Both items with the same ID should be rendered
+				expect(screen.getByText('Prompt.stories.tsx (Recent)')).toBeInTheDocument();
+				expect(screen.getByText('Prompt.stories.tsx (All)')).toBeInTheDocument();
+
+				// Should not have any React duplicate key warnings
+				const duplicateKeyWarnings = consoleError.mock.calls.filter(
+					call => call[0]?.toString().includes('same key')
+				);
+				expect(duplicateKeyWarnings).toHaveLength(0);
+
+				consoleError.mockRestore();
+			});
 		});
 
 		describe('Menu Navigation', () => {

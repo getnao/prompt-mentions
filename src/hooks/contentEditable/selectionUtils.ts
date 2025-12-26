@@ -1,10 +1,6 @@
 import { MentionDOM } from "./mentionDOM";
 import type { CaretCoordinates } from "./types";
 
-// ============================================================================
-// Selection Utilities
-// ============================================================================
-
 export const SelectionUtils = {
 	get(): Selection | null {
 		return window.getSelection();

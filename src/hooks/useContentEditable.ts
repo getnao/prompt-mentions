@@ -2,8 +2,6 @@ import { useRef, useCallback, useState, useEffect, useMemo } from "react";
 import { useHistory } from "./useHistory";
 import { useMentions } from "./useMentions";
 import type { MentionOption, MentionTriggerConfig } from "./useMentions";
-
-// Import types and utilities from contentEditable modules
 import type {
 	SelectedMention,
 	MentionConfig,
@@ -13,21 +11,14 @@ import type {
 import { DEFAULT_MENTION_CONFIG } from "./contentEditable/types";
 import { MentionDOM, normalizeValue } from "./contentEditable/mentionDOM";
 import { SelectionUtils } from "./contentEditable/selectionUtils";
-
-// Import sub-hooks
 import { useMentionNavigation } from "./contentEditable/useMentionNavigation";
 import { useMentionInsertion } from "./contentEditable/useMentionInsertion";
 import { useMentionTrigger } from "./contentEditable/useMentionTrigger";
 import { useClipboardHandlers } from "./contentEditable/useClipboardHandlers";
 
-// Re-export types for external use
 export type { SelectedMention, MentionConfig, UseContentEditableOptions, UseContentEditableReturn };
 export { MentionDOM } from "./contentEditable/mentionDOM";
 export { SelectionUtils } from "./contentEditable/selectionUtils";
-
-// ============================================================================
-// Main Hook
-// ============================================================================
 
 export function useContentEditable({
 	initialValue = "",
@@ -35,6 +26,7 @@ export function useContentEditable({
 	onEnter,
 	onMentionAdded,
 	onMentionDeleted,
+	onMentionClick,
 	mentionConfigs = DEFAULT_MENTION_CONFIG,
 }: UseContentEditableOptions = {}): UseContentEditableReturn {
 	// Extract triggers for quick lookup
@@ -58,24 +50,21 @@ export function useContentEditable({
 	const onEnterRef = useRef(onEnter);
 	const onMentionAddedRef = useRef(onMentionAdded);
 	const onMentionDeletedRef = useRef(onMentionDeleted);
+	const onMentionClickRef = useRef(onMentionClick);
 	onChangeRef.current = onChange;
 	onEnterRef.current = onEnter;
 	onMentionAddedRef.current = onMentionAdded;
 	onMentionDeletedRef.current = onMentionDeleted;
+	onMentionClickRef.current = onMentionClick;
 
 	const history = useHistory({ initialValue });
 	const mentions = useMentions({ configs: mentionHookConfigs });
 
-	// Mention refs object for sub-hooks
 	const mentionRefs = useMemo(() => ({
 		mentionStart: mentionStartRef,
 		mentionEnd: mentionEndRef,
 		activeTrigger: activeTriggerRef,
 	}), []);
-
-	// ---------------------------------------------------------------------------
-	// Helpers
-	// ---------------------------------------------------------------------------
 
 	const getElement = useCallback(() => ref.current, []);
 
@@ -124,10 +113,6 @@ export function useContentEditable({
 		saveToHistory();
 	}, [getValue, updateState, saveToHistory]);
 
-	// ---------------------------------------------------------------------------
-	// History (Undo/Redo)
-	// ---------------------------------------------------------------------------
-
 	const applyHistoryEntry = useCallback(
 		(content: string, cursorPosition: number) => {
 			const el = getElement();
@@ -154,15 +139,8 @@ export function useContentEditable({
 		history.setUndoRedo(false);
 	}, [history, applyHistoryEntry]);
 
-	// ---------------------------------------------------------------------------
-	// Sub-hooks
-	// ---------------------------------------------------------------------------
-
-	const {
-		handleAtomicMentionNavigation,
-		updateMentionSelectionVisuals,
-		resetSelectionDirection,
-	} = useMentionNavigation({ getElement });
+	const { handleAtomicMentionNavigation, updateMentionSelectionVisuals } =
+		useMentionNavigation({ getElement });
 
 	const { checkForMentionTrigger, clearMentionState } = useMentionTrigger({
 		getElement,
@@ -190,15 +168,10 @@ export function useContentEditable({
 
 	const { onCopy, onCut, onPaste } = useClipboardHandlers({
 		getElement,
-		getValue,
 		triggers,
 		mentionConfigs,
 		onContentChanged: updateStateAndSaveHistory,
 	});
-
-	// ---------------------------------------------------------------------------
-	// Backspace Handling
-	// ---------------------------------------------------------------------------
 
 	const handleBackspaceOnMention = useCallback(
 		(e: React.KeyboardEvent): boolean => {
@@ -224,10 +197,6 @@ export function useContentEditable({
 		},
 		[getElement, getValue, updateState, saveToHistory]
 	);
-
-	// ---------------------------------------------------------------------------
-	// Event Handlers
-	// ---------------------------------------------------------------------------
 
 	const onKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -386,6 +355,14 @@ export function useContentEditable({
 
 			e.preventDefault();
 
+			// Call onMentionClick callback if provided
+			if (onMentionClickRef.current) {
+				const id = mentionElement.getAttribute("data-mention-id") || mentionElement.getAttribute("data-mention") || "";
+				const label = mentionElement.getAttribute("data-mention") || "";
+				const trigger = mentionElement.getAttribute("data-mention-trigger") || triggers[0] || "@";
+				onMentionClickRef.current({ id, label, trigger });
+			}
+
 			const rect = mentionElement.getBoundingClientRect();
 			const clickX = e.clientX;
 			const mentionCenterX = rect.left + rect.width / 2;
@@ -406,7 +383,7 @@ export function useContentEditable({
 			sel.addRange(range);
 			el.focus();
 		},
-		[getElement, getValue, updateState, saveToHistory]
+		[getElement, getValue, updateState, saveToHistory, triggers]
 	);
 
 	const onInput = useCallback(() => {
@@ -416,10 +393,6 @@ export function useContentEditable({
 		saveToHistory();
 		checkForMentionTrigger();
 	}, [getElement, getValue, history, updateState, saveToHistory, checkForMentionTrigger]);
-
-	// ---------------------------------------------------------------------------
-	// Effects
-	// ---------------------------------------------------------------------------
 
 	useEffect(() => {
 		const el = ref.current;
@@ -455,10 +428,6 @@ export function useContentEditable({
 			document.removeEventListener("selectionchange", handleSelectionChange);
 		};
 	}, [updateMentionSelectionVisuals]);
-
-	// ---------------------------------------------------------------------------
-	// Return
-	// ---------------------------------------------------------------------------
 
 	const closeMenu = useCallback(() => {
 		mentions.closeMenu();

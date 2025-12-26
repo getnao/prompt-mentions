@@ -1,15 +1,6 @@
 import { useCallback } from "react";
+import type { MentionRefs } from "./types";
 import { SelectionUtils } from "./selectionUtils";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-export interface MentionRefs {
-	mentionStart: React.MutableRefObject<number | null>;
-	mentionEnd: React.MutableRefObject<number | null>;
-	activeTrigger: React.MutableRefObject<string | null>;
-}
 
 export interface UseMentionTriggerOptions {
 	getElement: () => HTMLDivElement | null;
@@ -25,10 +16,6 @@ export interface UseMentionTriggerReturn {
 	checkForMentionTrigger: () => void;
 	clearMentionState: () => void;
 }
-
-// ============================================================================
-// Hook
-// ============================================================================
 
 export function useMentionTrigger({
 	getElement,
