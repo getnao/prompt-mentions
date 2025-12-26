@@ -2,8 +2,8 @@ import { useContentEditable } from "../../hooks/useContentEditable";
 import type { MentionOption } from "../../hooks/useMentions";
 import type { SelectedMention } from "../../hooks/useContentEditable";
 import MentionMenu from "./MentionMenu";
-
-export type Theme = "default" | "cursor-dark-theme";
+import type { PromptTheme, PresetThemeName } from "../../types/theme";
+import { themeToStyles, presetThemes } from "../../types/theme";
 
 export type MentionMenuPosition = "above" | "below";
 
@@ -32,7 +32,48 @@ export interface PromptProps {
 	onMentionClick?: (mention: SelectedMention) => void;
 	placeholder?: string;
 	mentionConfigs?: MentionConfig[];
-	theme?: Theme;
+	/**
+	 * Theme configuration for styling the prompt.
+	 * Can be:
+	 * - A preset theme name: "light" | "cursorDark" | "githubDark" | "minimal"
+	 * - A custom PromptTheme object for full control
+	 */
+	theme?: PresetThemeName | PromptTheme;
+	/** Additional CSS class name(s) for the container */
+	className?: string;
+	/** Additional inline styles for the container */
+	style?: React.CSSProperties;
+}
+
+/**
+* Resolves the theme prop to CSS styles and class names.
+ */
+function resolveTheme(theme: PromptProps['theme']): {
+	styles: React.CSSProperties;
+	className: string;
+} {
+	// Handle undefined/null
+	if (!theme) {
+		return { styles: {}, className: '' };
+	}
+
+	// Handle preset theme names
+	if (typeof theme === 'string' && theme in presetThemes) {
+		return {
+			styles: themeToStyles(presetThemes[theme as PresetThemeName]),
+			className: '',
+		};
+	}
+
+	// Handle custom theme object
+	if (typeof theme === 'object') {
+		return {
+			styles: themeToStyles(theme),
+			className: '',
+		};
+	}
+
+	return { styles: {}, className: '' };
 }
 
 const Prompt = (props: PromptProps) => {
@@ -45,7 +86,9 @@ const Prompt = (props: PromptProps) => {
 		onMentionClick,
 		placeholder = "",
 		mentionConfigs = DEFAULT_CONFIG,
-		theme = "default",
+		theme,
+		className = "",
+		style,
 	} = props;
 
 	const { ref, isEmpty, handlers, mentions } = useContentEditable({
@@ -62,8 +105,25 @@ const Prompt = (props: PromptProps) => {
 	const activeConfig = mentionConfigs.find(c => c.trigger === mentions.activeTrigger);
 	const activeMenuPosition = activeConfig?.menuPosition ?? "below";
 
+	// Resolve theme to styles and class names
+	const { styles: themeStyles, className: themeClassName } = resolveTheme(theme);
+
+	// Combine styles (user styles override theme styles)
+	const combinedStyles: React.CSSProperties = {
+		...themeStyles,
+		...style,
+	};
+
+	// Combine class names
+	const combinedClassName = [
+		'prompt-container',
+		'relative',
+		themeClassName,
+		className,
+	].filter(Boolean).join(' ');
+
 	return (
-		<div className={`relative ${theme === 'default' ? '' : theme}`}>
+		<div className={combinedClassName} style={combinedStyles}>
 			<div
 				ref={ref}
 				contentEditable

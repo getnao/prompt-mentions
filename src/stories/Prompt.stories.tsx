@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Prompt from '../components/Prompt/Prompt';
 import type { MentionOption } from '../hooks/useMentions';
 import type { SelectedMention } from '../hooks/useContentEditable';
+import { presetThemes, type PromptTheme } from '../types/theme';
 import { Files, BookOpen, SquareTerminal, MessageSquare, File } from 'lucide-react';
 
 // Example icons as React components
@@ -239,7 +240,7 @@ export const CursorDarkTheme: Story = {
 	args: {
 		placeholder: 'Type @ to mention someone...',
 		mentionConfigs: [{ trigger: '@', options: cursorMentionOptions, menuPosition: 'above' }],
-		theme: 'cursor-dark-theme',
+		theme: 'cursorDark',
 		initialValue: 'I want to change the @[src/components/Prompt/Prompt.tsx] to fix the bug.',
 		onMentionClick: (mention: SelectedMention) => {
 			alert(`Mention clicked!\n\nID: ${mention.id}\nLabel: ${mention.label}\nTrigger: ${mention.trigger}`);
@@ -676,6 +677,262 @@ export const ClickableMentions: Story = {
 		docs: {
 			description: {
 				story: 'The `onMentionClick` callback is triggered when a user clicks on a mention pill. This can be used to open a profile, navigate to a file, or perform any custom action.',
+			},
+		},
+	},
+};
+
+// ========== Theme Customization Stories ==========
+
+export const PresetThemes: Story = {
+	name: 'Preset Themes',
+	render: () => (
+		<div className="space-y-8 p-4">
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Light Theme (default)</h3>
+				<Prompt
+					theme="light"
+					placeholder="Type @ to mention..."
+					mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+				/>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Cursor Dark Theme</h3>
+				<div className="bg-[#1F2126] p-4 rounded-lg">
+					<Prompt
+						theme="cursorDark"
+						placeholder="Type @ to mention..."
+						mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+					/>
+				</div>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">GitHub Dark Theme</h3>
+				<div className="bg-[#0d1117] p-4 rounded-lg">
+					<Prompt
+						theme="githubDark"
+						placeholder="Type @ to mention..."
+						mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+					/>
+				</div>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Minimal Theme</h3>
+				<Prompt
+					theme="minimal"
+					placeholder="Type @ to mention..."
+					mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+				/>
+			</div>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story: 'The library includes several preset themes that can be applied by passing a theme name string. Available presets: `"light"`, `"cursorDark"`, `"githubDark"`, `"minimal"`.',
+			},
+		},
+	},
+};
+
+// Custom theme example
+const customPurpleTheme: PromptTheme = {
+	backgroundColor: '#1a1625',
+	color: '#e0d4f7',
+	placeholderColor: '#6b5b8c',
+	fontSize: '14px',
+	borderRadius: '12px',
+	borderColor: '#2d2640',
+	padding: '0.75rem',
+	focusBorderColor: '#9c6ade',
+	menu: {
+		backgroundColor: '#1a1625',
+		borderColor: '#2d2640',
+		color: '#c4b5dc',
+		itemHoverColor: '#2d2640',
+		chevronColor: '#6b5b8c',
+		chevronHoverColor: '#9c6ade',
+	},
+	pill: {
+		backgroundColor: 'linear-gradient(135deg, #7c3aed 0%, #c026d3 100%)',
+		borderRadius: '8px',
+		color: 'white',
+		padding: '0.125rem 0.625rem',
+	},
+};
+
+const customOceanTheme: PromptTheme = {
+	backgroundColor: '#0c1929',
+	color: '#b8d4e8',
+	placeholderColor: '#4a6785',
+	fontSize: '14px',
+	borderRadius: '8px',
+	borderColor: '#1e3a5f',
+	padding: '0.625rem',
+	focusBorderColor: '#0ea5e9',
+	menu: {
+		backgroundColor: '#0c1929',
+		borderColor: '#1e3a5f',
+		color: '#8bb8d4',
+		itemHoverColor: '#1e3a5f',
+		chevronColor: '#4a6785',
+		chevronHoverColor: '#0ea5e9',
+	},
+	pill: {
+		backgroundColor: 'linear-gradient(135deg, #0369a1 0%, #0891b2 100%)',
+		borderRadius: '6px',
+		color: 'white',
+		padding: '0.125rem 0.5rem',
+	},
+};
+
+export const CustomTheme: Story = {
+	name: 'Custom Theme Object',
+	render: () => (
+		<div className="space-y-8 p-4">
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Custom Purple Theme</h3>
+				<div className="bg-[#1a1625] p-4 rounded-lg">
+					<Prompt
+						theme={customPurpleTheme}
+						placeholder="Type @ to mention..."
+						mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+					/>
+				</div>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Custom Ocean Theme</h3>
+				<div className="bg-[#0c1929] p-4 rounded-lg">
+					<Prompt
+						theme={customOceanTheme}
+						placeholder="Type @ to mention..."
+						mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+					/>
+				</div>
+			</div>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story: `Pass a \`PromptTheme\` object for full control over styling. The theme object supports all customizable properties:
+
+\`\`\`typescript
+const myTheme: PromptTheme = {
+  backgroundColor: '#fff',
+  color: '#000',
+  placeholderColor: '#999',
+  fontSize: '14px',
+  borderRadius: '8px',
+  borderColor: '#ccc',
+  padding: '0.5rem',
+  focusBorderColor: '#0066ff',
+  menu: {
+    backgroundColor: '#fff',
+    borderColor: '#eee',
+    color: '#333',
+    itemHoverColor: '#f5f5f5',
+    chevronColor: '#999',
+    chevronHoverColor: '#0066ff',
+  },
+  pill: {
+    backgroundColor: '#0066ff',
+    borderRadius: '4px',
+    color: 'white',
+    padding: '2px 8px',
+  },
+};
+
+<Prompt theme={myTheme} ... />
+\`\`\``,
+			},
+		},
+	},
+};
+
+export const PartialThemeOverride: Story = {
+	name: 'Partial Theme Override',
+	render: () => (
+		<div className="space-y-8 p-4">
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Only override pill styles</h3>
+				<Prompt
+					theme={{
+						pill: {
+							backgroundColor: '#16a34a',
+							borderRadius: '4px',
+						},
+					}}
+					placeholder="Type @ to mention..."
+					mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+				/>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Only override focus color</h3>
+				<Prompt
+					theme={{
+						focusBorderColor: '#f43f5e',
+					}}
+					placeholder="Focus the input to see the custom border color..."
+					mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+				/>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">Extend a preset theme</h3>
+				<div className="bg-[#0d1117] p-4 rounded-lg">
+					<Prompt
+						theme={{
+							...presetThemes.githubDark,
+							pill: {
+								...presetThemes.githubDark.pill,
+								backgroundColor: '#f97316',
+								color: 'white',
+							},
+						}}
+						placeholder="GitHub dark with orange pills..."
+						mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+					/>
+				</div>
+			</div>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story: 'You can pass a partial theme object to only override specific properties. Unspecified values will use the CSS variable defaults. You can also extend preset themes by spreading them.',
+			},
+		},
+	},
+};
+
+export const ThemeWithCustomClass: Story = {
+	name: 'Theme with Custom Class & Style',
+	render: () => (
+		<div className="space-y-8 p-4">
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">With custom className</h3>
+				<Prompt
+					theme="minimal"
+					className="shadow-lg"
+					placeholder="Type @ to mention..."
+					mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+				/>
+			</div>
+			<div>
+				<h3 className="text-sm font-medium text-gray-600 mb-2">With inline styles</h3>
+				<Prompt
+					theme="light"
+					style={{ maxWidth: 400, margin: '0 auto' }}
+					placeholder="Centered with max width..."
+					mentionConfigs={[{ trigger: '@', options: optionsWithIcons }]}
+				/>
+			</div>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story: 'Use the `className` and `style` props alongside themes for additional customization like layout, shadows, or animations.',
 			},
 		},
 	},
