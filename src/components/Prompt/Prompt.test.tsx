@@ -705,15 +705,15 @@ describe('Prompt', () => {
 
 				simulateTypingWithCursor(editableDiv, '@');
 
-				// First item should be selected by default
-				const items = container.querySelectorAll('.mention-menu-item');
+				// First item should be selected by default (menu rendered via portal)
+				const items = document.body.querySelectorAll('.mention-menu-item');
 				expect(items[0]).toHaveClass('mention-menu-item-selected');
 
 				// Press down arrow
 				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' });
 
-				// Second item should now be selected
-				const updatedItems = container.querySelectorAll('.mention-menu-item');
+				// Second item should now be selected (menu rendered via portal)
+				const updatedItems = document.body.querySelectorAll('.mention-menu-item');
 				expect(updatedItems[1]).toHaveClass('mention-menu-item-selected');
 			});
 
@@ -729,7 +729,8 @@ describe('Prompt', () => {
 				// Then up
 				fireEvent.keyDown(editableDiv, { key: 'ArrowUp' });
 
-				const items = container.querySelectorAll('.mention-menu-item');
+				// Menu rendered via portal
+				const items = document.body.querySelectorAll('.mention-menu-item');
 				expect(items[0]).toHaveClass('mention-menu-item-selected');
 			});
 
@@ -743,8 +744,8 @@ describe('Prompt', () => {
 				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' });
 				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' });
 
-				// Should wrap to first item
-				const items = container.querySelectorAll('.mention-menu-item');
+				// Should wrap to first item (menu rendered via portal)
+				const items = document.body.querySelectorAll('.mention-menu-item');
 				expect(items[0]).toHaveClass('mention-menu-item-selected');
 			});
 		});
@@ -1226,8 +1227,8 @@ describe('Prompt', () => {
 				expect(screen.getByText('People')).toBeInTheDocument();
 				expect(screen.getByText('Folders')).toBeInTheDocument();
 
-				// Titles should have the title class, not item class
-				const titleElements = container.querySelectorAll('.mention-menu-title');
+				// Titles should have the title class, not item class (menu rendered via portal)
+				const titleElements = document.body.querySelectorAll('.mention-menu-title');
 				expect(titleElements.length).toBe(2);
 			});
 
@@ -1237,8 +1238,8 @@ describe('Prompt', () => {
 
 				simulateTypingWithCursor(editableDiv, '@');
 
-				// Dividers should be rendered with separator role
-				const dividers = container.querySelectorAll('.mention-menu-divider');
+				// Dividers should be rendered with separator role (menu rendered via portal)
+				const dividers = document.body.querySelectorAll('.mention-menu-divider');
 				expect(dividers.length).toBe(1);
 				expect(dividers[0]).toHaveAttribute('role', 'separator');
 			});
@@ -1267,7 +1268,8 @@ describe('Prompt', () => {
 				simulateTypingWithCursor(editableDiv, '@');
 
 				// First selectable item (Alice) should be selected by default (skipping title)
-				const items = container.querySelectorAll('.mention-menu-item');
+				// Menu rendered via portal
+				const items = document.body.querySelectorAll('.mention-menu-item');
 				expect(items[0]).toHaveClass('mention-menu-item-selected');
 				expect(items[0]?.textContent).toContain('Alice');
 			});
@@ -1282,9 +1284,10 @@ describe('Prompt', () => {
 				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Bob
 				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // Projects (skips divider + title)
 
-				const items = container.querySelectorAll('.mention-menu-item');
+				// Menu rendered via portal
+				const items = document.body.querySelectorAll('.mention-menu-item');
 				// Projects should be selected
-				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				const selectedItem = document.body.querySelector('.mention-menu-item-selected');
 				expect(selectedItem?.textContent).toContain('Projects');
 			});
 
@@ -1301,7 +1304,8 @@ describe('Prompt', () => {
 				// Now go back up - should skip divider and title
 				fireEvent.keyDown(editableDiv, { key: 'ArrowUp' }); // Bob (skips divider + title)
 
-				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				// Menu rendered via portal
+				const selectedItem = document.body.querySelector('.mention-menu-item-selected');
 				expect(selectedItem?.textContent).toContain('Bob');
 			});
 
@@ -1319,7 +1323,8 @@ describe('Prompt', () => {
 				// Navigate down once more - should wrap to Alice (first selectable)
 				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' });
 
-				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				// Menu rendered via portal
+				const selectedItem = document.body.querySelector('.mention-menu-item-selected');
 				expect(selectedItem?.textContent).toContain('Alice');
 			});
 		});
@@ -1356,7 +1361,8 @@ describe('Prompt', () => {
 				fireEvent.keyDown(editableDiv, { key: 'Tab' }); // Enter submenu
 
 				// First selectable item should be selected (Project Alpha, not the title)
-				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				// Menu rendered via portal
+				const selectedItem = document.body.querySelector('.mention-menu-item-selected');
 				expect(selectedItem?.textContent).toContain('Project Alpha');
 			});
 
@@ -1434,8 +1440,8 @@ describe('Prompt', () => {
 				// Press Escape to go back
 				fireEvent.keyDown(editableDiv, { key: 'Escape' });
 
-				// Projects should be selected
-				const selectedItem = container.querySelector('.mention-menu-item-selected');
+				// Projects should be selected (menu rendered via portal)
+				const selectedItem = document.body.querySelector('.mention-menu-item-selected');
 				expect(selectedItem?.textContent).toContain('Projects');
 			});
 
@@ -1548,16 +1554,16 @@ describe('Prompt', () => {
 
 				simulateTypingWithCursor(editableDiv, '@');
 
-				// Initially Alice is selected
-				let selectedItem = container.querySelector('.mention-menu-item-selected');
+				// Initially Alice is selected (menu rendered via portal)
+				let selectedItem = document.body.querySelector('.mention-menu-item-selected');
 				expect(selectedItem?.textContent).toContain('Alice');
 
 				// Move mouse over Bob (mouseMove triggers hover selection, not mouseEnter)
 				const bobItem = screen.getByText('Bob').closest('.mention-menu-item')!;
 				fireEvent.mouseMove(bobItem);
 
-				// Bob should now be selected
-				selectedItem = container.querySelector('.mention-menu-item-selected');
+				// Bob should now be selected (menu rendered via portal)
+				selectedItem = document.body.querySelector('.mention-menu-item-selected');
 				expect(selectedItem?.textContent).toContain('Bob');
 			});
 		});
@@ -1603,7 +1609,8 @@ describe('Prompt', () => {
 				simulateTypingWithCursor(editableDiv, '@Project');
 
 				// Items in search results should not have chevron (children are removed)
-				const items = container.querySelectorAll('.mention-menu-item');
+				// Menu rendered via portal
+				const items = document.body.querySelectorAll('.mention-menu-item');
 				items.forEach(item => {
 					expect(item).not.toHaveClass('mention-menu-item-has-children');
 					expect(item.querySelector('.mention-menu-chevron')).not.toBeInTheDocument();
@@ -1655,8 +1662,8 @@ describe('Prompt', () => {
 				// Title should NOT appear in search results
 				expect(screen.queryByText('People')).not.toBeInTheDocument();
 
-				// No dividers should appear
-				const dividers = container.querySelectorAll('.mention-menu-divider');
+				// No dividers should appear (menu rendered via portal)
+				const dividers = document.body.querySelectorAll('.mention-menu-divider');
 				expect(dividers.length).toBe(0);
 			});
 
@@ -2602,7 +2609,8 @@ describe('Prompt', () => {
 
 				simulateTypingWithCursor(editableDiv, '@');
 
-				const menu = container.querySelector('.mention-menu');
+				// Menu is rendered via portal to document.body
+				const menu = document.body.querySelector('.mention-menu');
 				expect(menu).toBeInTheDocument();
 			});
 
@@ -2614,7 +2622,8 @@ describe('Prompt', () => {
 
 				simulateTypingWithCursor(editableDiv, '@');
 
-				const menu = container.querySelector('.mention-menu');
+				// Menu is rendered via portal to document.body
+				const menu = document.body.querySelector('.mention-menu');
 				expect(menu).toBeInTheDocument();
 			});
 
@@ -2624,7 +2633,8 @@ describe('Prompt', () => {
 
 				simulateTypingWithCursor(editableDiv, '@');
 
-				const menu = container.querySelector('.mention-menu') as HTMLElement;
+				// Menu is rendered via portal to document.body
+				const menu = document.body.querySelector('.mention-menu') as HTMLElement;
 				expect(menu).toBeInTheDocument();
 				expect(menu.style.position).toBe('fixed');
 			});
@@ -2873,7 +2883,8 @@ describe('Prompt', () => {
 				const editableDiv1 = container1.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv1, '@');
-				const menu1 = container1.querySelector('.mention-menu');
+				// Menu is rendered via portal to document.body
+				const menu1 = document.body.querySelector('.mention-menu');
 				expect(menu1).toBeInTheDocument();
 
 				cleanup();
@@ -2882,7 +2893,8 @@ describe('Prompt', () => {
 				const editableDiv2 = container2.querySelector('[contenteditable="true"]')!;
 
 				simulateTypingWithCursor(editableDiv2, '#');
-				const menu2 = container2.querySelector('.mention-menu');
+				// Menu is rendered via portal to document.body
+				const menu2 = document.body.querySelector('.mention-menu');
 				expect(menu2).toBeInTheDocument();
 			});
 		});

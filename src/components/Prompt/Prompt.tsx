@@ -7,19 +7,13 @@ import { themeToStyles, presetThemes } from "../../types/theme";
 
 export type MentionMenuPosition = "above" | "below";
 
-/** Configuration for a single mention trigger */
 export interface MentionConfig {
-	/** The character that triggers the mention menu (e.g., "@", "#", "/") */
 	trigger: string;
-	/** The options to display in the menu for this trigger */
 	options: MentionOption[];
-	/** Position preference for this trigger's menu */
 	menuPosition?: MentionMenuPosition;
-	/** Whether to show the trigger character in the mention pill. Defaults to false. */
 	showTrigger?: boolean;
 }
 
-/** Default config when none provided - @ trigger with no options */
 const DEFAULT_CONFIG: MentionConfig[] = [{ trigger: "@", options: [] }];
 
 export interface PromptProps {
@@ -28,26 +22,14 @@ export interface PromptProps {
 	onEnter?: (value: string, mentions: SelectedMention[]) => void;
 	onMentionAdded?: (mention: SelectedMention) => void;
 	onMentionDeleted?: (mention: SelectedMention) => void;
-	/** Called when a mention pill is clicked */
 	onMentionClick?: (mention: SelectedMention) => void;
 	placeholder?: string;
 	mentionConfigs?: MentionConfig[];
-	/**
-	 * Theme configuration for styling the prompt.
-	 * Can be:
-	 * - A preset theme name: "light" | "cursorDark" | "githubDark" | "minimal"
-	 * - A custom PromptTheme object for full control
-	 */
 	theme?: PresetThemeName | PromptTheme;
-	/** Additional CSS class name(s) for the container */
 	className?: string;
-	/** Additional inline styles for the container */
 	style?: React.CSSProperties;
 }
 
-/**
-* Resolves the theme prop to CSS styles and class names.
- */
 function resolveTheme(theme: PromptProps['theme']): {
 	styles: React.CSSProperties;
 	className: string;
@@ -147,6 +129,7 @@ const Prompt = (props: PromptProps) => {
 				isInSubmenu={mentions.isInSubmenu}
 				onHoverIndex={mentions.setSelectedIndex}
 				onClose={mentions.closeMenu}
+				themeStyles={themeStyles}
 			/>
 		</div>
 	);

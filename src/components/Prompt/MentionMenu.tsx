@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import type { MentionOption, CaretRect } from "../../hooks/useMentions";
 
 export type MentionMenuPosition = "above" | "below";
@@ -15,10 +16,9 @@ export interface MentionMenuProps {
 	isInSubmenu?: boolean;
 	onHoverIndex?: (index: number) => void;
 	onClose?: () => void;
-	/** Set to true when keyboard navigation occurs to temporarily disable hover selection */
 	isKeyboardNavigating?: boolean;
-	/** Callback to clear keyboard navigation mode when mouse moves */
 	onMouseActivity?: () => void;
+	themeStyles?: React.CSSProperties;
 }
 
 const ChevronRight = () => (
@@ -73,6 +73,7 @@ const MentionMenu = ({
 	onClose,
 	isKeyboardNavigating = false,
 	onMouseActivity,
+	themeStyles,
 }: MentionMenuProps) => {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const [actualPosition, setActualPosition] = useState<"above" | "below">(preferredPosition);
@@ -158,7 +159,7 @@ const MentionMenu = ({
 		? caretRect.bottom + MENU_SPACING
 		: caretRect.top - menuHeight - MENU_SPACING;
 
-	return (
+	const menuContent = (
 		<div
 			ref={menuRef}
 			className={`mention-menu${isKeyboardNavigating ? ' keyboard-navigating' : ''}`}
@@ -229,6 +230,16 @@ const MentionMenu = ({
 				);
 			})}
 		</div>
+	);
+
+	// Use portal to render menu at document.body level
+	// This ensures proper positioning even in iframes or transformed containers (e.g., Storybook Docs)
+	// Wrap in a div with theme styles so CSS custom properties are inherited
+	return createPortal(
+		<div style={themeStyles}>
+			{menuContent}
+		</div>,
+		document.body
 	);
 };
 
