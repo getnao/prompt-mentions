@@ -261,7 +261,7 @@ export const WithCustomMentionTrigger: Story = {
 
 export const WithInitialValue: Story = {
 	args: {
-		initialValue: 'Hello, @[John Doe]!',
+		initialValue: 'Hello, @[john-doe]!',
 		mentionConfigs: [{ trigger: '@', options: defaultOptions }],
 	},
 };
