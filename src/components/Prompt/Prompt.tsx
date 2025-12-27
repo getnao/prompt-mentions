@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { useContentEditable } from "../../hooks/useContentEditable";
 import type { MentionOption } from "../../hooks/useMentions";
 import type { SelectedMention } from "../../hooks/useContentEditable";
 import MentionMenu from "./MentionMenu";
 import type { PromptTheme, PresetThemeName } from "../../types/theme";
 import { themeToStyles, presetThemes } from "../../types/theme";
+import { getExtensionIcon } from "../../utils/extensionIcons";
 
 export type MentionMenuPosition = "above" | "below";
 
@@ -28,6 +30,12 @@ export interface PromptProps {
 	theme?: PresetThemeName | PromptTheme;
 	className?: string;
 	style?: React.CSSProperties;
+	/**
+	 * When true, automatically adds file extension icons to mention options.
+	 * Icons are determined by the file extension in the option label.
+	 * Only applies to options that don't already have an icon.
+	 */
+	extensionIcons?: boolean;
 }
 
 function resolveTheme(theme: PromptProps['theme']): {
@@ -58,6 +66,61 @@ function resolveTheme(theme: PromptProps['theme']): {
 	return { styles: {}, className: '' };
 }
 
+/**
+ * Recursively add extension icons to options that don't have one
+ */
+function addExtensionIconsToOptions(options: MentionOption[]): MentionOption[] {
+	return options.map((option) => {
+		// Skip dividers and titles
+		if (option.type === 'divider' || option.type === 'title') {
+			return option;
+		}
+
+		// If option already has an icon, keep it
+		if (option.icon) {
+			// Still process children if present
+			if (option.children) {
+				return {
+					...option,
+					children: addExtensionIconsToOptions(option.children),
+				};
+			}
+			return option;
+		}
+
+		// Get icon based on the label (filename)
+		const icon = getExtensionIcon(option.label);
+
+		// Process children recursively
+		const children = option.children
+			? addExtensionIconsToOptions(option.children)
+			: undefined;
+
+		return {
+			...option,
+			...(icon && { icon }),
+			...(children && { children }),
+		};
+	});
+}
+
+/**
+ * Process mention configs to add extension icons if enabled
+ */
+function processConfigsWithExtensionIcons(
+	configs: MentionConfig[],
+	extensionIcons: boolean
+): MentionConfig[] {
+	if (!extensionIcons) {
+		return configs;
+	}
+
+	return configs.map((config) => ({
+		...config,
+		options: addExtensionIconsToOptions(config.options),
+	}));
+}
+
 const Prompt = (props: PromptProps) => {
 	const {
 		initialValue = "",
@@ -71,11 +134,18 @@ const Prompt = (props: PromptProps) => {
 		theme,
 		className = "",
 		style,
+		extensionIcons = false,
 	} = props;
+
+	// Process configs to add extension icons if enabled
+	const processedConfigs = useMemo(
+		() => processConfigsWithExtensionIcons(mentionConfigs, extensionIcons),
+		[mentionConfigs, extensionIcons]
+	);
 
 	const { ref, isEmpty, handlers, mentions } = useContentEditable({
 		initialValue,
-		mentionConfigs,
+		mentionConfigs: processedConfigs,
 		onChange,
 		onEnter,
 		onMentionAdded,
@@ -84,7 +154,7 @@ const Prompt = (props: PromptProps) => {
 	});
 
 	// Get the menu position for the currently active trigger
-	const activeConfig = mentionConfigs.find(c => c.trigger === mentions.activeTrigger);
+	const activeConfig = processedConfigs.find(c => c.trigger === mentions.activeTrigger);
 	const activeMenuPosition = activeConfig?.menuPosition ?? "below";
 
 	// Resolve theme to styles and class names

@@ -186,9 +186,9 @@ export const WithPlaceholder: Story = {
 };
 
 const cursorMentionOptions: MentionOption[] = [
-	{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx', icon: <File /> },
+	{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx' },
 	{ id: 'src/index.css', label: 'index.css' },
-	{ id: 'src/stories/Prompt.stories.tsx', label: 'Prompt.stories.tsx' },
+	{ id: 'src/sql/query.sql', label: 'query.sql' },
 	{ type: 'divider', label: '', id: 'divider-1' },
 	{
 		label: 'Files & Folders', id: 'title-files', icon: <Files strokeWidth={1} />, children: [
@@ -245,6 +245,7 @@ export const CursorDarkTheme: Story = {
 		onMentionClick: (mention: SelectedMention) => {
 			alert(`Mention clicked!\n\nID: ${mention.id}\nLabel: ${mention.label}\nTrigger: ${mention.trigger}`);
 		},
+		extensionIcons: true,
 	},
 	globals: {
 		backgrounds: { value: 'dark' }
