@@ -1,5 +1,4 @@
-import { renderToStaticMarkup } from "react-dom/server";
-import type { ReactNode } from "react";
+import type { ReactNode, ReactElement } from "react";
 import type { MentionOption } from "../useMentions";
 import type { MentionConfig, SelectedMention } from "./types";
 
@@ -23,11 +22,95 @@ export const flattenOptions = (options: MentionOption[]): MentionOption[] => {
 	return result;
 };
 
+/**
+ * Convert a React element to an HTML string without using react-dom/server.
+ * This is a simplified renderer that handles basic React elements like SVG icons.
+ */
+const reactElementToHTML = (element: ReactElement): string => {
+	const { type, props } = element;
+
+	// Handle string types (like 'div', 'svg', 'span')
+	if (typeof type === "string") {
+		const propsObj = (props || {}) as Record<string, unknown>;
+		const attrs = Object.entries(propsObj)
+			.filter(([key]) => key !== "children")
+			.map(([key, value]) => {
+				// Convert React prop names to HTML attribute names
+				const attrName = key === "className" ? "class" :
+					key === "htmlFor" ? "for" :
+						key === "strokeWidth" ? "stroke-width" :
+							key === "strokeLinecap" ? "stroke-linecap" :
+								key === "strokeLinejoin" ? "stroke-linejoin" :
+									key === "fillRule" ? "fill-rule" :
+										key === "clipRule" ? "clip-rule" :
+											key === "viewBox" ? "viewBox" :
+												key.replace(/([A-Z])/g, "-$1").toLowerCase();
+
+				if (typeof value === "boolean") {
+					return value ? attrName : "";
+				}
+				return `${attrName}="${String(value).replace(/"/g, "&quot;")}"`;
+			})
+			.filter(Boolean)
+			.join(" ");
+
+		const openTag = attrs ? `<${type} ${attrs}>` : `<${type}>`;
+
+		// Handle children
+		const children = propsObj.children;
+		if (children === undefined || children === null) {
+			// Self-closing tags
+			const selfClosing = ["path", "circle", "ellipse", "line", "polygon", "polyline", "rect", "use", "img", "br", "hr", "input"];
+			if (selfClosing.includes(type)) {
+				return attrs ? `<${type} ${attrs}/>` : `<${type}/>`;
+			}
+			return `${openTag}</${type}>`;
+		}
+
+		const childrenHTML = renderChildren(children);
+		return `${openTag}${childrenHTML}</${type}>`;
+	}
+
+	// Handle function components (only works for simple function components, not class components)
+	if (typeof type === "function") {
+		try {
+			// Check if it's a class component by looking for prototype.isReactComponent
+			const isClassComponent = type.prototype && type.prototype.isReactComponent;
+			if (isClassComponent) {
+				return ""; // Skip class components
+			}
+			const result = (type as (props: unknown) => ReactElement | null)(props);
+			if (result && typeof result === "object" && "type" in result) {
+				return reactElementToHTML(result as ReactElement);
+			}
+			return "";
+		} catch {
+			return "";
+		}
+	}
+
+	return "";
+};
+
+const renderChildren = (children: unknown): string => {
+	if (children === null || children === undefined) return "";
+	if (typeof children === "string" || typeof children === "number") {
+		return String(children);
+	}
+	if (Array.isArray(children)) {
+		return children.map(renderChildren).join("");
+	}
+	if (typeof children === "object" && "type" in (children as object)) {
+		return reactElementToHTML(children as ReactElement);
+	}
+	return "";
+};
+
 export const iconToHTML = (icon: ReactNode): string => {
 	if (!icon) return "";
 	if (typeof icon === "string") return icon;
 	try {
-		return renderToStaticMarkup(icon as React.ReactElement);
+		return reactElementToHTML(icon as ReactElement);
 	} catch {
 		return "";
 	}
