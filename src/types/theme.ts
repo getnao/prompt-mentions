@@ -25,6 +25,8 @@ export interface PromptTheme {
 	focusBoxShadow?: string;
 	/** Line height of the prompt input */
 	lineHeight?: string;
+	/** Border width of the prompt input */
+	borderWidth?: string;
 
 	/** Mention menu configuration */
 	menu?: {
@@ -116,6 +118,7 @@ export function themeToStyles(theme?: PromptTheme): React.CSSProperties {
 	if (theme.focusBorderColor) styles['--prompt-focus-border-color'] = theme.focusBorderColor;
 	if (theme.focusBoxShadow) styles['--prompt-focus-box-shadow'] = theme.focusBoxShadow;
 	if (theme.lineHeight) styles['--prompt-line-height'] = theme.lineHeight;
+	if (theme.borderWidth) styles['--prompt-border-width'] = theme.borderWidth;
 
 	// Menu styles
 	if (theme.menu) {

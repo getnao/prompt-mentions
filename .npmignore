@@ -1,0 +1,31 @@
+# Source files (dist is built from these)
+src/
+*.ts
+!*.d.ts
+
+# Dev/test files
+node_modules/
+*.log
+*storybook.log
+storybook-static/
+.storybook/
+vitest.config.ts
+vitest.unit.config.ts
+vitest.setup.ts
+vitest.shims.d.ts
+rollup.config.js
+tsconfig.json
+
+# IDE/editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Stories (dev only)
+src/stories/
+

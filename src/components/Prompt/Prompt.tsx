@@ -169,7 +169,6 @@ const Prompt = (props: PromptProps) => {
 	// Combine class names
 	const combinedClassName = [
 		'prompt-container',
-		'relative',
 		themeClassName,
 		className,
 	].filter(Boolean).join(' ');
