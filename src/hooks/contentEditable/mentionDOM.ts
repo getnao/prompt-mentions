@@ -33,7 +33,7 @@ const reactElementToHTML = (element: ReactElement): string => {
 	if (typeof type === "string") {
 		const propsObj = (props || {}) as Record<string, unknown>;
 		const attrs = Object.entries(propsObj)
-			.filter(([key]) => key !== "children")
+			.filter(([key]) => key !== "children" && key !== "ref")
 			.map(([key, value]) => {
 				// Convert React prop names to HTML attribute names
 				const attrName = key === "className" ? "class" :
@@ -69,6 +69,20 @@ const reactElementToHTML = (element: ReactElement): string => {
 
 		const childrenHTML = renderChildren(children);
 		return `${openTag}${childrenHTML}</${type}>`;
+	}
+
+	// Handle forwardRef components (type is an object with a render function)
+	if (typeof type === "object" && type !== null && "render" in type) {
+		try {
+			const renderFn = (type as { render: (props: unknown, ref: unknown) => ReactElement | null }).render;
+			const result = renderFn(props, null);
+			if (result && typeof result === "object" && "type" in result) {
+				return reactElementToHTML(result as ReactElement);
+			}
+			return "";
+		} catch {
+			return "";
+		}
 	}
 
 	// Handle function components (only works for simple function components, not class components)

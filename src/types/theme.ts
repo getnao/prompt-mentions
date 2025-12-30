@@ -23,6 +23,8 @@ export interface PromptTheme {
 	focusBorderColor?: string;
 	/** Box shadow when the prompt is focused (e.g., "0 0 0 2px rgba(99, 102, 241, 0.2)" or "none") */
 	focusBoxShadow?: string;
+	/** Line height of the prompt input */
+	lineHeight?: string;
 
 	/** Mention menu configuration */
 	menu?: {
@@ -88,6 +90,8 @@ export interface PromptTheme {
 		color?: string;
 		/** Padding inside the pill */
 		padding?: string;
+		/** Line height of the pill */
+		lineHeight?: string;
 	};
 }
 
@@ -111,6 +115,7 @@ export function themeToStyles(theme?: PromptTheme): React.CSSProperties {
 	if (theme.padding) styles['--prompt-padding'] = theme.padding;
 	if (theme.focusBorderColor) styles['--prompt-focus-border-color'] = theme.focusBorderColor;
 	if (theme.focusBoxShadow) styles['--prompt-focus-box-shadow'] = theme.focusBoxShadow;
+	if (theme.lineHeight) styles['--prompt-line-height'] = theme.lineHeight;
 
 	// Menu styles
 	if (theme.menu) {
@@ -152,6 +157,7 @@ export function themeToStyles(theme?: PromptTheme): React.CSSProperties {
 		if (theme.pill.borderRadius) styles['--prompt-mention-pill-border-radius'] = theme.pill.borderRadius;
 		if (theme.pill.color) styles['--prompt-mention-pill-color'] = theme.pill.color;
 		if (theme.pill.padding) styles['--prompt-mention-pill-padding'] = theme.pill.padding;
+		if (theme.pill.lineHeight) styles['--prompt-mention-pill-line-height'] = theme.pill.lineHeight;
 	}
 
 	return styles as React.CSSProperties;
@@ -221,6 +227,7 @@ export const presetThemes = {
 		padding: '.375rem .5rem .25rem',
 		focusBorderColor: '#2F353F',
 		focusBoxShadow: 'none',
+		lineHeight: '1.7',
 		menu: {
 			backgroundColor: '#1A1C21',
 			borderColor: '#282C35',
@@ -253,7 +260,8 @@ export const presetThemes = {
 			backgroundColor: '#283B56',
 			borderRadius: '4px',
 			color: '#d8dee9',
-			padding: '1px 4px 2px',
+			padding: '1px 4px 2px 4px',
+			lineHeight: '1.4',
 		},
 	} satisfies PromptTheme,
 
