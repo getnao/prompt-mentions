@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { useRef } from 'react';
 import Prompt from './Prompt';
-import type { MentionConfig } from './Prompt';
+import type { MentionConfig, PromptHandle } from './Prompt';
 import type { MentionOption } from '../../hooks/useMentions';
 
 // Default options used in most tests
@@ -3214,6 +3215,301 @@ describe('Prompt', () => {
 				const pill = container.querySelector('[data-mention="Alice"]');
 				expect(pill).toBeInTheDocument();
 				expect(pill?.textContent).toBe('Alice');
+			});
+		});
+	});
+
+	describe('Imperative Handle (ref)', () => {
+		describe('appendMention', () => {
+			it('appends a mention to empty input', () => {
+				const handleChange = vi.fn();
+				let promptRef: PromptHandle | null = null;
+
+				const TestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					promptRef = ref.current;
+					return (
+						<Prompt
+							ref={ref}
+							mentionConfigs={defaultConfig}
+							onChange={handleChange}
+						/>
+					);
+				};
+
+				const { container, rerender } = render(<TestComponent />);
+
+				// Get the ref after render
+				rerender(<TestComponent />);
+
+				// Get ref from container
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Create a wrapper to access the ref
+				const RefWrapper = ({ onRef }: { onRef: (ref: PromptHandle | null) => void }) => {
+					const ref = useRef<PromptHandle>(null);
+					onRef(ref.current);
+					return (
+						<Prompt
+							ref={ref}
+							mentionConfigs={defaultConfig}
+							onChange={handleChange}
+						/>
+					);
+				};
+
+				cleanup();
+				let capturedRef: PromptHandle | null = null;
+				const { container: newContainer } = render(
+					<RefWrapper onRef={(r) => { capturedRef = r; }} />
+				);
+
+				// Re-render to get the ref
+				cleanup();
+
+				// Use a different approach - render with callback ref
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="append-btn"
+								onClick={() => ref.current?.appendMention({ id: 'john-doe', label: 'John Doe' })}
+							>
+								Append
+							</button>
+						</div>
+					);
+				};
+
+				const { container: testContainer } = render(<RefTestComponent />);
+
+				const appendBtn = screen.getByTestId('append-btn');
+				fireEvent.click(appendBtn);
+
+				const pill = testContainer.querySelector('[data-mention="John Doe"]');
+				expect(pill).toBeInTheDocument();
+				expect(handleChange).toHaveBeenCalledWith('@[john-doe] ', expect.any(Array));
+			});
+
+			it('appends a mention after existing text with space', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								initialValue="Hello"
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="append-btn"
+								onClick={() => ref.current?.appendMention({ id: 'jane-smith', label: 'Jane Smith' })}
+							>
+								Append
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+
+				const appendBtn = screen.getByTestId('append-btn');
+				fireEvent.click(appendBtn);
+
+				const pill = container.querySelector('[data-mention="Jane Smith"]');
+				expect(pill).toBeInTheDocument();
+				// Should add space before mention since text doesn't end with whitespace
+				expect(handleChange).toHaveBeenCalledWith('Hello @[jane-smith] ', expect.any(Array));
+			});
+
+			it('appends a mention after existing mention', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								initialValue="Hello @[john-doe] "
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="append-btn"
+								onClick={() => ref.current?.appendMention({ id: 'jane-smith', label: 'Jane Smith' })}
+							>
+								Append
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+
+				const appendBtn = screen.getByTestId('append-btn');
+				fireEvent.click(appendBtn);
+
+				const pills = container.querySelectorAll('[data-mention]');
+				expect(pills).toHaveLength(2);
+				expect(container.querySelector('[data-mention="John Doe"]')).toBeInTheDocument();
+				expect(container.querySelector('[data-mention="Jane Smith"]')).toBeInTheDocument();
+			});
+
+			it('uses custom trigger when provided', () => {
+				const handleChange = vi.fn();
+
+				const hashOptions: MentionOption[] = [
+					{ id: 'bug', label: 'bug' },
+					{ id: 'feature', label: 'feature' },
+				];
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={[
+									{ trigger: '@', options: defaultOptions },
+									{ trigger: '#', options: hashOptions },
+								]}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="append-btn"
+								onClick={() => ref.current?.appendMention({ id: 'bug', label: 'bug' }, '#')}
+							>
+								Append
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+
+				const appendBtn = screen.getByTestId('append-btn');
+				fireEvent.click(appendBtn);
+
+				const pill = container.querySelector('[data-mention="bug"]');
+				expect(pill).toBeInTheDocument();
+				expect(pill?.getAttribute('data-mention-trigger')).toBe('#');
+				expect(handleChange).toHaveBeenCalledWith('#[bug] ', expect.any(Array));
+			});
+
+			it('triggers onMentionAdded callback', () => {
+				const handleMentionAdded = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onMentionAdded={handleMentionAdded}
+							/>
+							<button
+								data-testid="append-btn"
+								onClick={() => ref.current?.appendMention({ id: 'john-doe', label: 'John Doe' })}
+							>
+								Append
+							</button>
+						</div>
+					);
+				};
+
+				render(<RefTestComponent />);
+
+				const appendBtn = screen.getByTestId('append-btn');
+				fireEvent.click(appendBtn);
+
+				expect(handleMentionAdded).toHaveBeenCalledWith(
+					expect.objectContaining({
+						id: 'john-doe',
+						label: 'John Doe',
+						trigger: '@',
+					})
+				);
+			});
+
+			it('appends mention with icon', () => {
+				const handleChange = vi.fn();
+				const TestIcon = () => <span data-testid="test-icon">★</span>;
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="append-btn"
+								onClick={() => ref.current?.appendMention({
+									id: 'star-user',
+									label: 'Star User',
+									icon: <TestIcon />
+								})}
+							>
+								Append
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+
+				const appendBtn = screen.getByTestId('append-btn');
+				fireEvent.click(appendBtn);
+
+				const pill = container.querySelector('[data-mention="Star User"]');
+				expect(pill).toBeInTheDocument();
+				// Icon should be rendered in the pill
+				expect(pill?.querySelector('.mention-pill-icon')).toBeInTheDocument();
+			});
+		});
+
+		describe('focus', () => {
+			it('focuses the input element', () => {
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+							/>
+							<button
+								data-testid="focus-btn"
+								onClick={() => ref.current?.focus()}
+							>
+								Focus
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				expect(document.activeElement).not.toBe(editableDiv);
+
+				const focusBtn = screen.getByTestId('focus-btn');
+				fireEvent.click(focusBtn);
+
+				expect(document.activeElement).toBe(editableDiv);
 			});
 		});
 	});

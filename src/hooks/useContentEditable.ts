@@ -268,8 +268,23 @@ export function useContentEditable({
 				}
 			}
 
+			// Handle Cmd+A / Ctrl+A - select all content
 			if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+				e.preventDefault();
+				const element = getElement();
+				if (element) {
+					const selection = window.getSelection();
+					if (selection) {
+						const range = document.createRange();
+						range.selectNodeContents(element);
+						selection.removeAllRanges();
+						selection.addRange(range);
+						// Update mention visuals to show all mentions as selected
+						updateMentionSelectionVisuals();
+					}
+				}
 				selectAllPressedRef.current = true;
+				return;
 			} else if (e.key !== "Backspace") {
 				selectAllPressedRef.current = false;
 			}
@@ -434,6 +449,51 @@ export function useContentEditable({
 		clearMentionState();
 	}, [mentions, clearMentionState]);
 
+	/**
+	 * Appends a mention to the end of the input content.
+	 * @param option - The mention option to append
+	 * @param trigger - Optional trigger character (defaults to first configured trigger)
+	 */
+	const appendMention = useCallback(
+		(option: MentionOption, trigger?: string) => {
+			const el = ref.current;
+			if (!el) return;
+
+			const activeTrigger = trigger ?? triggers[0] ?? "@";
+
+			// Get current serialized value
+			const currentValue = getValue();
+
+			// Add space before mention if content doesn't end with whitespace
+			const needsSpace = currentValue.length > 0 && !/\s$/.test(currentValue);
+			const prefix = needsSpace ? " " : "";
+
+			// Construct the new value with the mention appended
+			const newValue = `${currentValue}${prefix}${activeTrigger}[${option.id}] `;
+
+			// Update configs to include the option for proper HTML rendering
+			const updatedConfigs = mentionConfigs.map(c =>
+				c.trigger === activeTrigger
+					? { ...c, options: [...c.options, option] }
+					: c
+			);
+
+			// Update DOM
+			el.innerHTML = MentionDOM.parseValueMulti(newValue, updatedConfigs);
+
+			// Calculate new cursor position (at the end)
+			const currentTextLen = el.innerText.length;
+
+			// Position cursor at the very end
+			SelectionUtils.setCursorPosition(el, currentTextLen);
+
+			// Update state
+			updateState(newValue);
+			saveToHistory();
+		},
+		[getValue, triggers, mentionConfigs, updateState, saveToHistory]
+	);
+
 	return {
 		ref,
 		isEmpty,
@@ -452,5 +512,6 @@ export function useContentEditable({
 			isKeyboardNavigating: mentions.isKeyboardNavigating,
 			clearKeyboardNavigation: mentions.clearKeyboardNavigation,
 		},
+		appendMention,
 	};
 }

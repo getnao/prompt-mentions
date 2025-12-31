@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Prompt from '../components/Prompt/Prompt';
+import type { PromptHandle } from '../components/Prompt/Prompt';
 import type { MentionOption } from '../hooks/useMentions';
 import type { SelectedMention } from '../hooks/useContentEditable';
 import { presetThemes, type PromptTheme } from '../types/theme';
@@ -1068,6 +1069,241 @@ Features demonstrated:
 - **indent**: Creates folder/file hierarchy
 - **extensionIcons**: Automatic file type icons based on extension
 - **cursorDark theme**: Dark mode styling`,
+			},
+		},
+	},
+};
+
+// ========== Imperative Handle (ref) Stories ==========
+
+// Options for external mention append demo
+const externalMentionOptions: MentionOption[] = [
+	{ id: 'alice', label: 'Alice Johnson', icon: <UserIcon /> },
+	{ id: 'bob', label: 'Bob Smith', icon: <UserIcon /> },
+	{ id: 'carol', label: 'Carol White', icon: <UserIcon /> },
+	{ id: 'main-ts', label: 'main.ts', icon: <CodeIcon /> },
+	{ id: 'index-tsx', label: 'index.tsx', icon: <CodeIcon /> },
+	{ id: 'readme', label: 'README.md', icon: <FileIcon /> },
+];
+
+const tagOptionsForExternal: MentionOption[] = [
+	{ id: 'urgent', label: 'urgent' },
+	{ id: 'bug', label: 'bug' },
+	{ id: 'feature', label: 'feature' },
+];
+
+const AppendMentionShowcase = () => {
+	const promptRef = useRef<PromptHandle>(null);
+	const [lastAction, setLastAction] = useState<string>('');
+
+	const handleAppendUser = (user: MentionOption) => {
+		promptRef.current?.appendMention(user);
+		promptRef.current?.focus();
+		setLastAction(`Appended: @${user.label}`);
+	};
+
+	const handleAppendTag = (tag: MentionOption) => {
+		promptRef.current?.appendMention(tag, '#');
+		promptRef.current?.focus();
+		setLastAction(`Appended: #${tag.label}`);
+	};
+
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="text-sm text-gray-600">
+				<p className="font-medium mb-2">External Mention Append Demo</p>
+				<p>Click the buttons below to programmatically append mentions to the input.</p>
+			</div>
+
+			<Prompt
+				ref={promptRef}
+				placeholder="Type here or use buttons to add mentions..."
+				mentionConfigs={[
+					{ trigger: '@', options: externalMentionOptions },
+					{ trigger: '#', options: tagOptionsForExternal },
+				]}
+				onChange={(value) => console.log('Value:', value)}
+			/>
+
+			<div className="flex flex-col gap-4">
+				<div>
+					<h4 className="text-sm font-semibold text-gray-700 mb-2">Add People (@)</h4>
+					<div className="flex flex-wrap gap-2">
+						{externalMentionOptions.filter(o => o.icon?.toString().includes('UserIcon') || o.label.includes('Johnson') || o.label.includes('Smith') || o.label.includes('White')).slice(0, 3).map((user) => (
+							<button
+								key={user.id}
+								onClick={() => handleAppendUser(user)}
+								className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors flex items-center gap-2"
+							>
+								<span className="w-4 h-4">{user.icon}</span>
+								{user.label}
+							</button>
+						))}
+					</div>
+				</div>
+
+				<div>
+					<h4 className="text-sm font-semibold text-gray-700 mb-2">Add Files (@)</h4>
+					<div className="flex flex-wrap gap-2">
+						{externalMentionOptions.filter(o => o.label.includes('.ts') || o.label.includes('.md')).map((file) => (
+							<button
+								key={file.id}
+								onClick={() => handleAppendUser(file)}
+								className="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 text-green-700 rounded-md transition-colors flex items-center gap-2"
+							>
+								<span className="w-4 h-4">{file.icon}</span>
+								{file.label}
+							</button>
+						))}
+					</div>
+				</div>
+
+				<div>
+					<h4 className="text-sm font-semibold text-gray-700 mb-2">Add Tags (#)</h4>
+					<div className="flex flex-wrap gap-2">
+						{tagOptionsForExternal.map((tag) => (
+							<button
+								key={tag.id}
+								onClick={() => handleAppendTag(tag)}
+								className="px-3 py-1.5 text-sm bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-md transition-colors"
+							>
+								#{tag.label}
+							</button>
+						))}
+					</div>
+				</div>
+			</div>
+
+			{lastAction && (
+				<div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+					<span className="text-sm text-gray-600">Last action: </span>
+					<span className="text-sm font-mono text-gray-800">{lastAction}</span>
+				</div>
+			)}
+		</div>
+	);
+};
+
+export const ExternalMentionAppend: Story = {
+	name: 'External Mention Append (ref)',
+	render: () => <AppendMentionShowcase />,
+	parameters: {
+		docs: {
+			description: {
+				story: `Use the \`ref\` prop to access imperative methods for controlling the prompt from outside.
+
+### Available Methods
+
+\`\`\`typescript
+interface PromptHandle {
+  // Appends a mention to the end of the input
+  appendMention: (option: MentionOption, trigger?: string) => void;
+  // Focuses the prompt input
+  focus: () => void;
+}
+\`\`\`
+
+### Usage Example
+
+\`\`\`tsx
+import { useRef } from 'react';
+import { Prompt, PromptHandle, MentionOption } from 'prompt-mentions';
+
+function MyComponent() {
+  const promptRef = useRef<PromptHandle>(null);
+
+  const handleAddMention = () => {
+    const option: MentionOption = {
+      id: 'user-123',
+      label: 'John Doe',
+    };
+    
+    // Append mention with default trigger (@)
+    promptRef.current?.appendMention(option);
+    
+    // Or with a specific trigger
+    promptRef.current?.appendMention(option, '#');
+    
+    // Focus the prompt after adding
+    promptRef.current?.focus();
+  };
+
+  return (
+    <>
+      <Prompt
+        ref={promptRef}
+        mentionConfigs={[
+          { trigger: '@', options: [...] },
+          { trigger: '#', options: [...] },
+        ]}
+      />
+      <button onClick={handleAddMention}>Add @John Doe</button>
+    </>
+  );
+}
+\`\`\`
+
+This is useful for:
+- Adding mentions from a sidebar or external UI
+- Integrating with drag-and-drop
+- Programmatically inserting mentions based on other user actions
+- Building command palettes that insert mentions`,
+			},
+		},
+	},
+};
+
+// Dark theme version of external append
+const AppendMentionDarkShowcase = () => {
+	const promptRef = useRef<PromptHandle>(null);
+
+	const files: MentionOption[] = [
+		{ id: 'src/index.ts', label: 'index.ts' },
+		{ id: 'src/App.tsx', label: 'App.tsx' },
+		{ id: 'package.json', label: 'package.json' },
+	];
+
+	return (
+		<div className="bg-[#1F2126] p-6 rounded-lg">
+			<div className="flex flex-col gap-4">
+				<Prompt
+					ref={promptRef}
+					theme="cursorDark"
+					placeholder="Ask a question about your code..."
+					mentionConfigs={[{ trigger: '@', options: cursorMentionOptions, menuPosition: 'above' }]}
+					extensionIcons={true}
+				/>
+
+				<div className="flex gap-2">
+					<span className="text-xs text-gray-500">Quick add:</span>
+					{files.map((file) => (
+						<button
+							key={file.id}
+							onClick={() => {
+								promptRef.current?.appendMention(file);
+								promptRef.current?.focus();
+							}}
+							className="px-2 py-1 text-xs bg-[#2d2d30] hover:bg-[#3d3d40] text-gray-300 rounded transition-colors"
+						>
+							@{file.label}
+						</button>
+					))}
+				</div>
+			</div>
+		</div>
+	);
+};
+
+export const ExternalMentionAppendDark: Story = {
+	name: 'External Mention Append (Dark Theme)',
+	render: () => <AppendMentionDarkShowcase />,
+	globals: {
+		backgrounds: { value: 'dark' }
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: 'The external mention append feature works seamlessly with all themes. This example shows a Cursor-like dark theme with quick-add buttons for common files.',
 			},
 		},
 	},

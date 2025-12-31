@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, forwardRef, useImperativeHandle } from "react";
 import { useContentEditable } from "../../hooks/useContentEditable";
 import type { MentionOption } from "../../hooks/useMentions";
 import type { SelectedMention } from "../../hooks/useContentEditable";
@@ -36,6 +36,23 @@ export interface PromptProps {
 	 * Only applies to options that don't already have an icon.
 	 */
 	extensionIcons?: boolean;
+}
+
+/**
+ * Imperative handle exposed by the Prompt component via ref.
+ * Use this to programmatically interact with the prompt from parent components.
+ */
+export interface PromptHandle {
+	/**
+	 * Appends a mention to the end of the input.
+	 * @param option - The mention option to append
+	 * @param trigger - Optional trigger character (defaults to first configured trigger or "@")
+	 */
+	appendMention: (option: MentionOption, trigger?: string) => void;
+	/**
+	 * Focuses the prompt input.
+	 */
+	focus: () => void;
 }
 
 function resolveTheme(theme: PromptProps['theme']): {
@@ -121,7 +138,7 @@ function processConfigsWithExtensionIcons(
 	}));
 }
 
-const Prompt = (props: PromptProps) => {
+const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 	const {
 		initialValue = "",
 		onChange,
@@ -143,7 +160,7 @@ const Prompt = (props: PromptProps) => {
 		[mentionConfigs, extensionIcons]
 	);
 
-	const { ref, isEmpty, handlers, mentions } = useContentEditable({
+	const { ref, isEmpty, handlers, mentions, appendMention } = useContentEditable({
 		initialValue,
 		mentionConfigs: processedConfigs,
 		onChange,
@@ -152,6 +169,16 @@ const Prompt = (props: PromptProps) => {
 		onMentionDeleted,
 		onMentionClick,
 	});
+
+	// Expose imperative handle for external control
+	useImperativeHandle(forwardedRef, () => ({
+		appendMention: (option: MentionOption, trigger?: string) => {
+			appendMention(option, trigger);
+		},
+		focus: () => {
+			ref.current?.focus();
+		},
+	}), [appendMention, ref]);
 
 	// Get the menu position for the currently active trigger
 	const activeConfig = processedConfigs.find(c => c.trigger === mentions.activeTrigger);
@@ -198,10 +225,14 @@ const Prompt = (props: PromptProps) => {
 				isInSubmenu={mentions.isInSubmenu}
 				onHoverIndex={mentions.setSelectedIndex}
 				onClose={mentions.closeMenu}
+				isKeyboardNavigating={mentions.isKeyboardNavigating}
+				onMouseActivity={mentions.clearKeyboardNavigation}
 				themeStyles={themeStyles}
 			/>
 		</div>
 	);
-};
+});
+
+Prompt.displayName = 'Prompt';
 
 export default Prompt; 

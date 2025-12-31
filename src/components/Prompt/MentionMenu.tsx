@@ -158,17 +158,54 @@ const MentionMenu = ({
 		}
 	}, [isOpen, caretRect, preferredPosition, options]);
 
-	// Scroll selected item into view
-	useEffect(() => {
+	// Scroll selected item into view synchronously to avoid visual jank
+	// useLayoutEffect ensures scroll happens before paint, so selection and scroll appear simultaneous
+	// We use manual scrollTop calculation instead of scrollIntoView for more predictable behavior
+	useLayoutEffect(() => {
 		if (isOpen && menuRef.current) {
-			const selectedItem = menuRef.current.querySelector(
+			const menu = menuRef.current;
+			const selectedItem = menu.querySelector(
 				`[data-index="${selectedIndex}"]`
-			);
+			) as HTMLElement | null;
+
 			if (selectedItem) {
-				selectedItem.scrollIntoView({ block: "nearest" });
+				// Get menu padding to ensure items aren't flush against edges
+				const computedStyle = window.getComputedStyle(menu);
+				const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+				const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+
+				// Check if this is the first selectable item and there's a title/divider before it
+				// If so, scroll to top to show the title
+				const firstSelectableIndex = options.findIndex(
+					opt => opt.type !== 'title' && opt.type !== 'divider'
+				);
+				const hasTitleBeforeSelected = options.slice(0, selectedIndex).some(
+					opt => opt.type === 'title' || opt.type === 'divider'
+				);
+
+				if (selectedIndex === firstSelectableIndex && hasTitleBeforeSelected) {
+					// Scroll to the top to show the title
+					menu.scrollTop = 0;
+				} else {
+					// Manual scroll calculation - avoids scrollIntoView's implicit behaviors
+					const itemTop = selectedItem.offsetTop;
+					const itemBottom = itemTop + selectedItem.offsetHeight;
+					const menuScrollTop = menu.scrollTop;
+					const menuVisibleBottom = menuScrollTop + menu.clientHeight;
+
+					if (itemTop < menuScrollTop + paddingTop) {
+						// Item is above visible area (or too close to top edge) - scroll up
+						// Subtract paddingTop to show the padding above the item
+						menu.scrollTop = itemTop - paddingTop;
+					} else if (itemBottom > menuVisibleBottom - paddingBottom) {
+						// Item is below visible area (or too close to bottom edge) - scroll down
+						// Add paddingBottom to show the padding below the item
+						menu.scrollTop = itemBottom - menu.clientHeight + paddingBottom;
+					}
+				}
 			}
 		}
-	}, [isOpen, selectedIndex]);
+	}, [isOpen, selectedIndex, options]);
 
 	if (!isOpen || options.length === 0) return null;
 
@@ -254,7 +291,7 @@ const MentionMenu = ({
 						)}
 						<span className="mention-menu-item-label">{option.label}</span>
 						{option.labelRight && (
-							<span className="mention-menu-item-label-right">{option.labelRight}</span>
+							<span className="mention-menu-item-label-right"><bdi>{option.labelRight}</bdi></span>
 						)}
 						{hasChildren && <ChevronRight />}
 					</div>

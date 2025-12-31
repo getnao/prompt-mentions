@@ -65,6 +65,12 @@ export interface UseContentEditableReturn {
 		/** Call this when mouse activity is detected to exit keyboard navigation mode */
 		clearKeyboardNavigation: () => void;
 	};
+	/**
+	 * Appends a mention to the end of the input content.
+	 * @param option - The mention option to append
+	 * @param trigger - Optional trigger character (defaults to first configured trigger)
+	 */
+	appendMention: (option: MentionOption, trigger?: string) => void;
 }
 
 export interface CaretCoordinates {

@@ -48,6 +48,8 @@ export interface PromptTheme {
 		chevronHoverColor?: string;
 		/** Minimum width of the menu (e.g., "180px", "240px") */
 		minWidth?: string;
+		/** Maximum height of the menu (e.g., "200px", "300px") */
+		maxHeight?: string;
 		/** Menu item configuration */
 		item?: {
 			/** Height of menu items (e.g., "auto", "20px") */
@@ -139,6 +141,7 @@ export const defaultTheme: Required<
 		chevronColor: '#9ca3af',
 		chevronHoverColor: '#6366f1',
 		minWidth: '180px',
+		maxHeight: '300px',
 		item: {
 			height: 'auto',
 			padding: '0.5rem 0.75rem',
@@ -206,6 +209,7 @@ export function themeToStyles(theme?: PromptTheme): React.CSSProperties {
 		if (theme.menu.chevronColor) styles['--prompt-mention-menu-chevron-color'] = theme.menu.chevronColor;
 		if (theme.menu.chevronHoverColor) styles['--prompt-mention-menu-chevron-hover-color'] = theme.menu.chevronHoverColor;
 		if (theme.menu.minWidth) styles['--prompt-mention-menu-min-width'] = theme.menu.minWidth;
+		if (theme.menu.maxHeight) styles['--prompt-mention-menu-max-height'] = theme.menu.maxHeight;
 
 		// Menu item styles
 		if (theme.menu.item) {
