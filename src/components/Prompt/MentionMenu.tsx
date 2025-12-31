@@ -78,6 +78,8 @@ const MentionMenu = ({
 	const menuRef = useRef<HTMLDivElement>(null);
 	const [actualPosition, setActualPosition] = useState<"above" | "below">(preferredPosition);
 	const [menuHeight, setMenuHeight] = useState(0);
+	const [menuWidth, setMenuWidth] = useState(0);
+	const [alignRight, setAlignRight] = useState(false);
 
 	// Handle mouse move on items - switches to mouse navigation mode and selects
 	const handleItemMouseMove = useCallback((index: number) => {
@@ -115,12 +117,18 @@ const MentionMenu = ({
 		const menuEl = menuRef.current;
 		const rect = menuEl.getBoundingClientRect();
 		setMenuHeight(rect.height);
+		setMenuWidth(rect.width);
 
 		const viewportHeight = window.innerHeight;
+		const viewportWidth = window.innerWidth;
 
 		// Calculate available space above and below the caret
 		const spaceBelow = viewportHeight - caretRect.bottom - MENU_SPACING;
 		const spaceAbove = caretRect.top - MENU_SPACING;
+
+		// Calculate available space to the right and left of the caret
+		const spaceRight = viewportWidth - caretRect.left - MENU_SPACING;
+		const spaceLeft = caretRect.left - MENU_SPACING;
 
 		// Determine actual position based on preference and available space
 		if (preferredPosition === "below") {
@@ -137,6 +145,16 @@ const MentionMenu = ({
 			} else {
 				setActualPosition("above");
 			}
+		}
+
+		// Determine horizontal alignment
+		// Prefer left-aligned (menu starts at caret), but flip to right-aligned if:
+		// - Menu would overflow on the right
+		// - There's enough space on the left to fit the menu
+		if (rect.width > spaceRight && spaceLeft >= rect.width) {
+			setAlignRight(true);
+		} else {
+			setAlignRight(false);
 		}
 	}, [isOpen, caretRect, preferredPosition, options]);
 
@@ -159,6 +177,12 @@ const MentionMenu = ({
 		? caretRect.bottom + MENU_SPACING
 		: caretRect.top - menuHeight - MENU_SPACING;
 
+	// Calculate final left position based on horizontal alignment
+	// When alignRight is true, position menu so its right edge is at the caret position
+	const left = alignRight
+		? caretRect.left - menuWidth
+		: caretRect.left;
+
 	const menuContent = (
 		<div
 			ref={menuRef}
@@ -166,7 +190,7 @@ const MentionMenu = ({
 			style={{
 				position: "fixed",
 				top: Math.max(MENU_SPACING, top), // Ensure it doesn't go above viewport
-				left: caretRect.left,
+				left: Math.max(MENU_SPACING, left), // Ensure it doesn't go past left edge of viewport
 			}}
 		>
 			{options.map((option, index) => {

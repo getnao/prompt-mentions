@@ -14,7 +14,7 @@
  *    Override these in your CSS to customize all Prompt instances.
  */
 
-:root {
+.prompt-container {
 	/* ===== Prompt Input ===== */
 	--prompt-background-color: white;
 	--prompt-color: black;
@@ -28,6 +28,7 @@
 	--prompt-focus-box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 	--prompt-line-height: 1.7;
 	--prompt-border-width: 1px;
+	--prompt-min-height: 100px;
 
 	/* ===== Mention Menu ===== */
 	--prompt-mention-menu-background-color: white;
@@ -73,7 +74,7 @@
 
 /* Prompt Input */
 .prompt-input {
-	min-height: 100px;
+	min-height: var(--prompt-min-height);
 	padding: var(--prompt-padding);
 	border: var(--prompt-border-width) solid var(--prompt-border-color);
 	border-radius: var(--prompt-border-radius);
@@ -82,6 +83,7 @@
 	line-height: var(--prompt-line-height);
 	background-color: var(--prompt-background-color);
 	color: var(--prompt-color);
+	cursor: text;
 }
 
 .prompt-input:focus {
@@ -292,8 +294,8 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 0.875em;
-	height: 0.875em;
+	width: var(--prompt-font-size);
+	height: var(--prompt-font-size);
 	margin-right: 0.25rem;
 	flex-shrink: 0;
 	vertical-align: -0.1em;
@@ -301,13 +303,16 @@
 }
 
 .mention-pill-icon svg {
-	width: 100%;
-	height: 100%;
+	width: var(--prompt-font-size);
+	height: var(--prompt-font-size);
 }
 
 /* Original icon - hide on hover */
 .mention-pill-icon-original {
 	transition: opacity 0.1s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .mention-pill:hover .mention-pill-icon-original {
@@ -326,8 +331,8 @@
 }
 
 .mention-pill-icon-delete svg {
-	width: 100%;
-	height: 100%;
+	width: var(--prompt-font-size);
+	height: var(--prompt-font-size);
 	stroke-width: 2.5;
 }
 
