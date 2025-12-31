@@ -9,6 +9,10 @@ export interface MentionOption {
 	icon?: ReactNode;
 	type?: MentionItemType;
 	children?: MentionOption[];
+	/** Secondary label displayed aligned right, typically for paths or metadata */
+	labelRight?: string;
+	/** Indent level for visual hierarchy (0 = no indent, 1 = one level, etc.) */
+	indent?: number;
 }
 
 export interface CaretRect {
@@ -128,6 +132,8 @@ const filterOptionsFlat = (options: MentionOption[], searchText: string): Mentio
 				};
 				if (opt.icon) flatItem.icon = opt.icon;
 				if (opt.type) flatItem.type = opt.type;
+				if (opt.labelRight) flatItem.labelRight = opt.labelRight;
+				// Note: indent is intentionally not preserved in search results (flat list)
 				result.push(flatItem);
 			}
 

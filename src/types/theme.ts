@@ -29,6 +29,8 @@ export interface PromptTheme {
 	borderWidth?: string;
 	/** Minimum height of the prompt input */
 	minHeight?: string;
+	/** Size of each indent level in the menu (e.g., "1rem", "16px") */
+	indentSize?: string;
 
 	/** Mention menu configuration */
 	menu?: {
@@ -60,6 +62,10 @@ export interface PromptTheme {
 			labelFontWeight?: string | number;
 			/** Height of the icon */
 			iconHeight?: string;
+			/** Font size of the right label (e.g., file path) */
+			labelRightFontSize?: string;
+			/** Color of the right label */
+			labelRightColor?: string;
 		};
 		/** Menu title/header configuration */
 		title?: {
@@ -100,6 +106,73 @@ export interface PromptTheme {
 }
 
 /**
+ * Default theme values that match the CSS variable defaults in index.css.
+ * This serves as the single source of truth for all default styling.
+ */
+export const defaultTheme: Required<
+	Pick<PromptTheme, 'backgroundColor' | 'color' | 'placeholderColor' | 'fontSize' | 'fontFamily' | 'borderRadius' | 'borderColor' | 'padding' | 'focusBorderColor' | 'focusBoxShadow' | 'lineHeight' | 'borderWidth' | 'minHeight'>
+> & {
+	menu: Required<NonNullable<PromptTheme['menu']>>;
+	pill: Required<NonNullable<PromptTheme['pill']>>;
+} = {
+	// Prompt input defaults
+	backgroundColor: 'white',
+	color: 'black',
+	placeholderColor: '#9ca3af',
+	fontSize: '14px',
+	fontFamily: "'Inter', sans-serif",
+	borderRadius: '0.375rem',
+	borderColor: '#d1d5db',
+	padding: '0.5rem',
+	focusBorderColor: '#6366f1',
+	focusBoxShadow: '0 0 0 2px rgba(99, 102, 241, 0.2)',
+	lineHeight: '1.7',
+	borderWidth: '1px',
+	minHeight: '100px',
+
+	// Menu defaults
+	menu: {
+		backgroundColor: 'white',
+		borderColor: '#e5e7eb',
+		color: 'inherit',
+		itemHoverColor: '#f3f4f6',
+		chevronColor: '#9ca3af',
+		chevronHoverColor: '#6366f1',
+		minWidth: '180px',
+		item: {
+			height: 'auto',
+			padding: '0.5rem 0.75rem',
+			gap: '4px',
+			labelFontSize: '0.875rem',
+			labelFontWeight: 500,
+			iconHeight: '1.25rem',
+			labelRightFontSize: '0.75rem',
+			labelRightColor: '#6b7280',
+		},
+		title: {
+			padding: '0.5rem 0.75rem',
+			paddingTop: '0.75rem',
+			height: 'auto',
+			labelFontSize: '0.6875rem',
+			labelFontWeight: 600,
+			labelColor: '#9ca3af',
+			labelTextTransform: 'uppercase',
+			labelLetterSpacing: '0.05em',
+			labelOpacity: 1,
+		},
+	},
+
+	// Pill defaults
+	pill: {
+		backgroundColor: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+		borderRadius: '9999px',
+		color: 'white',
+		padding: '0.125rem 0.5rem',
+		lineHeight: '1.4',
+	},
+};
+
+/**
  * Converts a PromptTheme object to CSS custom properties.
  * Returns an object suitable for use as React inline styles.
  */
@@ -122,6 +195,7 @@ export function themeToStyles(theme?: PromptTheme): React.CSSProperties {
 	if (theme.lineHeight) styles['--prompt-line-height'] = theme.lineHeight;
 	if (theme.borderWidth) styles['--prompt-border-width'] = theme.borderWidth;
 	if (theme.minHeight) styles['--prompt-min-height'] = theme.minHeight;
+	if (theme.indentSize) styles['--prompt-mention-menu-item-indent-size'] = theme.indentSize;
 
 	// Menu styles
 	if (theme.menu) {
@@ -141,6 +215,8 @@ export function themeToStyles(theme?: PromptTheme): React.CSSProperties {
 			if (theme.menu.item.labelFontSize) styles['--prompt-mention-menu-item-label-font-size'] = theme.menu.item.labelFontSize;
 			if (theme.menu.item.labelFontWeight !== undefined) styles['--prompt-mention-menu-item-label-font-weight'] = String(theme.menu.item.labelFontWeight);
 			if (theme.menu.item.iconHeight) styles['--prompt-mention-menu-item-icon-height'] = theme.menu.item.iconHeight;
+			if (theme.menu.item.labelRightFontSize) styles['--prompt-mention-menu-item-label-right-font-size'] = theme.menu.item.labelRightFontSize;
+			if (theme.menu.item.labelRightColor) styles['--prompt-mention-menu-item-label-right-color'] = theme.menu.item.labelRightColor;
 		}
 
 		// Menu title styles
@@ -170,59 +246,49 @@ export function themeToStyles(theme?: PromptTheme): React.CSSProperties {
 }
 
 /**
+ * Helper to deep merge theme objects, using defaults as base.
+ */
+function mergeTheme(base: typeof defaultTheme, overrides: PromptTheme): PromptTheme {
+	return {
+		...base,
+		...overrides,
+		menu: overrides.menu ? {
+			...base.menu,
+			...overrides.menu,
+			item: overrides.menu.item ? {
+				...base.menu.item,
+				...overrides.menu.item,
+			} : base.menu.item,
+			title: overrides.menu.title ? {
+				...base.menu.title,
+				...overrides.menu.title,
+			} : base.menu.title,
+		} : base.menu,
+		pill: overrides.pill ? {
+			...base.pill,
+			...overrides.pill,
+		} : base.pill,
+	};
+}
+
+/**
  * Preset themes that can be used out of the box.
+ * All preset themes are complete - they include all default values.
  */
 export const presetThemes = {
-	/** Light theme (default) */
-	light: {
-		backgroundColor: 'white',
-		color: 'black',
-		placeholderColor: '#9ca3af',
-		fontSize: '14px',
+	/** Light theme (default) - uses all default values */
+	light: mergeTheme(defaultTheme, {
 		fontFamily: 'inherit',
-		borderRadius: '0.375rem',
-		borderColor: '#d1d5db',
-		padding: '0.5rem',
-		focusBorderColor: '#6366f1',
-		focusBoxShadow: '0 0 0 2px rgba(99, 102, 241, 0.2)',
 		menu: {
-			backgroundColor: 'white',
-			borderColor: '#e5e7eb',
 			color: 'black',
-			itemHoverColor: '#f3f4f6',
-			chevronColor: '#9ca3af',
-			chevronHoverColor: '#6366f1',
-			minWidth: '180px',
 			item: {
-				height: 'auto',
-				padding: '0.5rem 0.75rem',
-				gap: '4px',
-				labelFontSize: '0.875rem',
-				labelFontWeight: 500,
-				iconHeight: '1.25rem',
-			},
-			title: {
-				padding: '0.5rem 0.75rem',
-				paddingTop: '0.75rem',
-				height: 'auto',
-				labelFontSize: '0.6875rem',
-				labelFontWeight: 600,
-				labelColor: '#9ca3af',
-				labelTextTransform: 'uppercase',
-				labelLetterSpacing: '0.05em',
-				labelOpacity: 1,
+				labelRightColor: '#9ca3af',
 			},
 		},
-		pill: {
-			backgroundColor: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-			borderRadius: '9999px',
-			color: 'white',
-			padding: '0.125rem 0.5rem',
-		},
-	} satisfies PromptTheme,
+	}),
 
 	/** Dark theme similar to Cursor IDE */
-	cursorDark: {
+	cursorDark: mergeTheme(defaultTheme, {
 		backgroundColor: '#22242C',
 		color: '#d8dee9',
 		placeholderColor: '#585C65',
@@ -233,7 +299,7 @@ export const presetThemes = {
 		padding: '.375rem .5rem .25rem',
 		focusBorderColor: '#2F353F',
 		focusBoxShadow: 'none',
-		lineHeight: '1.7',
+		indentSize: '5px',
 		menu: {
 			backgroundColor: '#1A1C21',
 			borderColor: '#282C35',
@@ -249,6 +315,8 @@ export const presetThemes = {
 				labelFontSize: '12px',
 				labelFontWeight: 300,
 				iconHeight: '12px',
+				labelRightFontSize: '11px',
+				labelRightColor: '#585C65',
 			},
 			title: {
 				padding: '2px 6px',
@@ -269,14 +337,13 @@ export const presetThemes = {
 			padding: '1px 4px 2px 4px',
 			lineHeight: '1.4',
 		},
-	} satisfies PromptTheme,
+	}),
 
 	/** GitHub-inspired dark theme */
-	githubDark: {
+	githubDark: mergeTheme(defaultTheme, {
 		backgroundColor: '#0d1117',
 		color: '#c9d1d9',
 		placeholderColor: '#484f58',
-		fontSize: '14px',
 		fontFamily: 'inherit',
 		borderRadius: '6px',
 		borderColor: '#30363d',
@@ -290,37 +357,22 @@ export const presetThemes = {
 			itemHoverColor: '#21262d',
 			chevronColor: '#484f58',
 			chevronHoverColor: '#58a6ff',
-			minWidth: '180px',
 			item: {
-				height: 'auto',
-				padding: '0.5rem 0.75rem',
-				gap: '4px',
-				labelFontSize: '0.875rem',
-				labelFontWeight: 500,
-				iconHeight: '1.25rem',
+				labelRightColor: '#484f58',
 			},
 			title: {
-				padding: '0.5rem 0.75rem',
-				paddingTop: '0.75rem',
-				height: 'auto',
-				labelFontSize: '0.6875rem',
-				labelFontWeight: 600,
 				labelColor: '#8b949e',
-				labelTextTransform: 'uppercase',
-				labelLetterSpacing: '0.05em',
-				labelOpacity: 1,
 			},
 		},
 		pill: {
 			backgroundColor: '#388bfd26',
 			borderRadius: '6px',
 			color: '#58a6ff',
-			padding: '0.125rem 0.5rem',
 		},
-	} satisfies PromptTheme,
+	}),
 
 	/** Minimal/clean theme */
-	minimal: {
+	minimal: mergeTheme(defaultTheme, {
 		backgroundColor: '#fafafa',
 		color: '#18181b',
 		placeholderColor: '#a1a1aa',
@@ -338,34 +390,19 @@ export const presetThemes = {
 			itemHoverColor: '#f4f4f5',
 			chevronColor: '#a1a1aa',
 			chevronHoverColor: '#18181b',
-			minWidth: '180px',
 			item: {
-				height: 'auto',
-				padding: '0.5rem 0.75rem',
-				gap: '4px',
-				labelFontSize: '0.875rem',
-				labelFontWeight: 500,
-				iconHeight: '1.25rem',
+				labelRightColor: '#a1a1aa',
 			},
 			title: {
-				padding: '0.5rem 0.75rem',
-				paddingTop: '0.75rem',
-				height: 'auto',
-				labelFontSize: '0.6875rem',
-				labelFontWeight: 600,
 				labelColor: '#a1a1aa',
-				labelTextTransform: 'uppercase',
-				labelLetterSpacing: '0.05em',
-				labelOpacity: 1,
 			},
 		},
 		pill: {
 			backgroundColor: '#18181b',
 			borderRadius: '4px',
 			color: '#fafafa',
-			padding: '0.125rem 0.5rem',
 		},
-	} satisfies PromptTheme,
+	}),
 } as const;
 
 export type PresetThemeName = keyof typeof presetThemes;

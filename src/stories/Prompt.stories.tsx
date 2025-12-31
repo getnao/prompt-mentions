@@ -193,7 +193,10 @@ const cursorMentionOptions: MentionOption[] = [
 	{
 		label: 'Files & Folders', id: 'title-files', icon: <Files strokeWidth={1} />, children: [
 			{ id: 'files-folders', label: 'Files & Folders', type: 'title' },
-			{ id: 'src/components/Prompt/Prompt.tsx', label: 'Prompt.tsx' },
+			{ id: 'src', label: 'src', icon: <FolderIcon /> },
+			{ id: 'src/index.css', label: 'index.css', labelRight: 'src/', indent: 1 },
+			{ id: 'src/stories.css', label: 'stories.css', labelRight: 'src/', indent: 1 },
+			{ id: 'src/components/something/Prompt/Prompt.tsx', label: 'Prompt.tsx', labelRight: 'src/components/something/Prompt/' },
 			{ id: 'src/index.css', label: 'index.css' },
 			{ id: 'src/stories/Prompt.stories.tsx', label: 'MentionMenu.stories.tsx' },
 			{ id: 'src/stories.css', label: 'stories.css' },
@@ -934,6 +937,137 @@ export const ThemeWithCustomClass: Story = {
 		docs: {
 			description: {
 				story: 'Use the `className` and `style` props alongside themes for additional customization like layout, shadows, or animations.',
+			},
+		},
+	},
+};
+
+// ========== labelRight Feature Stories ==========
+
+// Options with labelRight for showing file paths
+const fileOptionsWithPaths: MentionOption[] = [
+	{ id: 'title-recent', label: 'Recent Files', type: 'title' },
+	{ id: 'prompt-tsx', label: 'Prompt.tsx', labelRight: 'src/components/', icon: <CodeIcon /> },
+	{ id: 'index-css', label: 'index.css', labelRight: 'src/', icon: <FileIcon /> },
+	{ id: 'useMentions-ts', label: 'useMentions.ts', labelRight: 'src/hooks/', icon: <CodeIcon /> },
+	{ id: 'divider-1', label: '', type: 'divider' },
+	{ id: 'title-all', label: 'All Files', type: 'title' },
+	{ id: 'app-tsx', label: 'App.tsx', labelRight: 'src/', icon: <CodeIcon /> },
+	{ id: 'theme-ts', label: 'theme.ts', labelRight: 'src/types/', icon: <CodeIcon /> },
+	{ id: 'readme-md', label: 'README.md', labelRight: './', icon: <FileIcon /> },
+	{ id: 'package-json', label: 'package.json', labelRight: './', icon: <FileIcon /> },
+	{ id: 'stories-tsx', label: 'Prompt.stories.tsx', labelRight: 'src/stories/', icon: <CodeIcon /> },
+];
+
+export const WithLabelRight: Story = {
+	name: 'With Label Right (File Paths)',
+	args: {
+		placeholder: 'Type @ to see files with paths...',
+		mentionConfigs: [{ trigger: '@', options: fileOptionsWithPaths }],
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: `The \`labelRight\` property allows you to display secondary information aligned to the right side of menu items. This is perfect for showing file paths, metadata, or any additional context.
+
+\`\`\`typescript
+const options: MentionOption[] = [
+  { id: 'file1', label: 'index.tsx', labelRight: 'src/components/' },
+  { id: 'file2', label: 'styles.css', labelRight: 'src/styles/' },
+];
+\`\`\`
+
+The right label is styled with a muted gray color and will ellipsis from the left if it overflows (showing the most relevant part of the path).`,
+			},
+		},
+	},
+};
+
+// ========== Indent Feature Stories ==========
+
+// Options with indent for file/folder hierarchy
+const fileTreeOptions: MentionOption[] = [
+	{ id: 'src', label: 'src', icon: <FolderIcon /> },
+	{ id: 'components', label: 'components', icon: <FolderIcon />, indent: 1 },
+	{ id: 'prompt-folder', label: 'Prompt', icon: <FolderIcon />, indent: 2 },
+	{ id: 'prompt-tsx', label: 'Prompt.tsx', labelRight: 'src/components/Prompt/', icon: <CodeIcon />, indent: 3 },
+	{ id: 'prompt-test', label: 'Prompt.test.tsx', labelRight: 'src/components/Prompt/', icon: <CodeIcon />, indent: 3 },
+	{ id: 'menu-tsx', label: 'MentionMenu.tsx', labelRight: 'src/components/Prompt/', icon: <CodeIcon />, indent: 3 },
+	{ id: 'hooks', label: 'hooks', icon: <FolderIcon />, indent: 1 },
+	{ id: 'useMentions', label: 'useMentions.ts', labelRight: 'src/hooks/', icon: <CodeIcon />, indent: 2 },
+	{ id: 'useHistory', label: 'useHistory.ts', labelRight: 'src/hooks/', icon: <CodeIcon />, indent: 2 },
+	{ id: 'types', label: 'types', icon: <FolderIcon />, indent: 1 },
+	{ id: 'theme-ts', label: 'theme.ts', labelRight: 'src/types/', icon: <CodeIcon />, indent: 2 },
+	{ id: 'index-ts', label: 'index.ts', labelRight: 'src/types/', icon: <CodeIcon />, indent: 2 },
+];
+
+export const WithIndentHierarchy: Story = {
+	name: 'With Indent (File Tree Hierarchy)',
+	args: {
+		placeholder: 'Type @ to see file tree...',
+		mentionConfigs: [{ trigger: '@', options: fileTreeOptions }],
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: `The \`indent\` property creates visual hierarchy by adding left padding to menu items. Combined with \`labelRight\`, you can create IDE-like file tree experiences.
+
+\`\`\`typescript
+const options: MentionOption[] = [
+  { id: 'src', label: 'src', icon: <FolderIcon /> },
+  { id: 'components', label: 'components', icon: <FolderIcon />, indent: 1 },
+  { id: 'button', label: 'Button.tsx', labelRight: 'src/components/', indent: 2 },
+];
+\`\`\`
+
+**Note:** When searching, items are flattened and indentation is removed to show a clean list of results.`,
+			},
+		},
+	},
+};
+
+// Combined showcase with Cursor-like dark theme
+const cursorFileTreeOptions: MentionOption[] = [
+	{ id: 'seeds', label: 'seeds', icon: <FolderIcon /> },
+	{ id: 'gitkeep', label: '.gitkeep', labelRight: 'seeds/', icon: <FileIcon />, indent: 1 },
+	{ id: 'raw-customers', label: 'raw_customers.csv', labelRight: 'seeds/', icon: <File strokeWidth={1} />, indent: 1 },
+	{ id: 'raw-orders', label: 'raw_orders.csv', labelRight: 'seeds/', icon: <File strokeWidth={1} />, indent: 1 },
+	{ id: 'raw-payments', label: 'raw_payments.csv', labelRight: 'seeds/', icon: <File strokeWidth={1} />, indent: 1 },
+	{ id: 'divider-1', label: '', type: 'divider' },
+	{ id: 'models', label: 'models', icon: <FolderIcon /> },
+	{ id: 'staging', label: 'staging', icon: <FolderIcon />, indent: 1 },
+	{ id: 'stg-customers', label: 'stg_customers.sql', labelRight: 'models/staging/', icon: <CodeIcon />, indent: 2 },
+	{ id: 'stg-orders', label: 'stg_orders.sql', labelRight: 'models/staging/', icon: <CodeIcon />, indent: 2 },
+	{ id: 'marts', label: 'marts', icon: <FolderIcon />, indent: 1 },
+	{ id: 'dim-customers', label: 'dim_customers.sql', labelRight: 'models/marts/', icon: <CodeIcon />, indent: 2 },
+	{ id: 'fct-orders', label: 'fct_orders.sql', labelRight: 'models/marts/', icon: <CodeIcon />, indent: 2 },
+];
+
+export const FileTreeDarkTheme: Story = {
+	name: 'File Tree with Dark Theme (Cursor-style)',
+	render: () => (
+		<div className="bg-[#1F2126] p-6 rounded-lg">
+			<Prompt
+				theme="cursorDark"
+				placeholder="Type @ to browse files..."
+				mentionConfigs={[{ trigger: '@', options: cursorFileTreeOptions, menuPosition: 'below' }]}
+				extensionIcons={true}
+			/>
+		</div>
+	),
+	globals: {
+		backgrounds: { value: 'dark' }
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: `A complete example combining \`labelRight\`, \`indent\`, and the Cursor dark theme to create an IDE-like file browsing experience. This showcases how the features work together for a polished UI.
+
+Features demonstrated:
+- **labelRight**: Shows file paths aligned right
+- **indent**: Creates folder/file hierarchy
+- **extensionIcons**: Automatic file type icons based on extension
+- **cursorDark theme**: Dark mode styling`,
 			},
 		},
 	},

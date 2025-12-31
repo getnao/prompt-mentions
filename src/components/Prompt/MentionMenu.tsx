@@ -228,12 +228,16 @@ const MentionMenu = ({
 				const hasChildren = option.children && option.children.length > 0;
 				const isSelected = index === selectedIndex;
 
+				const indentStyle = option.indent ? { paddingLeft: `calc(var(--prompt-mention-menu-item-padding-left, 0.75rem) + ${option.indent} * var(--prompt-mention-menu-item-indent-size, 1rem))` } : undefined;
+
 				return (
 					<div
 						key={uniqueKey}
 						data-index={index}
+						data-indent={option.indent ?? undefined}
 						className={`mention-menu-item ${isSelected ? "mention-menu-item-selected" : ""
 							} ${hasChildren ? "mention-menu-item-has-children" : ""}`}
+						style={indentStyle}
 						onMouseDown={(e) => {
 							e.preventDefault();
 							e.stopPropagation();
@@ -249,6 +253,9 @@ const MentionMenu = ({
 							<span className="mention-menu-item-icon">{option.icon}</span>
 						)}
 						<span className="mention-menu-item-label">{option.label}</span>
+						{option.labelRight && (
+							<span className="mention-menu-item-label-right">{option.labelRight}</span>
+						)}
 						{hasChildren && <ChevronRight />}
 					</div>
 				);
@@ -258,9 +265,9 @@ const MentionMenu = ({
 
 	// Use portal to render menu at document.body level
 	// This ensures proper positioning even in iframes or transformed containers (e.g., Storybook Docs)
-	// Wrap in a div with theme styles so CSS custom properties are inherited
+	// Wrap in a div with prompt-container class (for CSS variable defaults) and theme styles (for overrides)
 	return createPortal(
-		<div style={themeStyles}>
+		<div className="prompt-container" style={themeStyles}>
 			{menuContent}
 		</div>,
 		document.body

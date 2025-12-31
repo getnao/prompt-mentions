@@ -1682,6 +1682,166 @@ describe('Prompt', () => {
 		});
 	});
 
+	describe('Menu Items with labelRight and indent', () => {
+		const fileOptions: MentionOption[] = [
+			{ id: 'seeds-folder', label: 'seeds' },
+			{ id: 'gitkeep', label: '.gitkeep', labelRight: 'seeds/', indent: 1 },
+			{ id: 'raw-customers', label: 'raw_customers.csv', labelRight: 'seeds/', indent: 1 },
+			{ id: 'raw-orders', label: 'raw_orders.csv', labelRight: 'seeds/', indent: 1 },
+			{ id: 'models-folder', label: 'models' },
+			{ id: 'model-file', label: 'customers.sql', labelRight: 'models/', indent: 1 },
+			{ id: 'nested-file', label: 'deeply_nested.sql', labelRight: 'models/staging/', indent: 2 },
+		];
+
+		const fileConfig: MentionConfig[] = [{ trigger: '@', options: fileOptions }];
+
+		describe('labelRight display', () => {
+			it('renders labelRight as secondary text aligned right', () => {
+				const { container } = render(<Prompt mentionConfigs={fileConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// labelRight should be rendered
+				const labelRightElements = document.body.querySelectorAll('.mention-menu-item-label-right');
+				expect(labelRightElements.length).toBe(5); // 5 items have labelRight
+
+				// Check specific labelRight values (using getAllByText for duplicates)
+				expect(screen.getAllByText('seeds/').length).toBe(3); // .gitkeep, raw_customers, raw_orders
+				expect(screen.getByText('models/')).toBeInTheDocument();
+				expect(screen.getByText('models/staging/')).toBeInTheDocument();
+			});
+
+			it('does not render labelRight element when not provided', () => {
+				const { container } = render(<Prompt mentionConfigs={fileConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Find the seeds folder item (no labelRight)
+				const seedsItem = screen.getByText('seeds').closest('.mention-menu-item');
+				expect(seedsItem?.querySelector('.mention-menu-item-label-right')).not.toBeInTheDocument();
+
+				// Find an item with labelRight
+				const gitkeepItem = screen.getByText('.gitkeep').closest('.mention-menu-item');
+				expect(gitkeepItem?.querySelector('.mention-menu-item-label-right')).toBeInTheDocument();
+			});
+
+			it('preserves labelRight in search results', () => {
+				const { container } = render(<Prompt mentionConfigs={fileConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Search for "csv"
+				simulateTypingWithCursor(editableDiv, '@csv');
+
+				// Should find items with labelRight preserved
+				const rawCustomersItem = screen.getByText('raw_customers.csv').closest('.mention-menu-item');
+				const labelRight = rawCustomersItem?.querySelector('.mention-menu-item-label-right');
+				expect(labelRight).toBeInTheDocument();
+				expect(labelRight?.textContent).toBe('seeds/');
+			});
+		});
+
+		describe('indent display', () => {
+			it('applies indent via data-indent attribute and style', () => {
+				const { container } = render(<Prompt mentionConfigs={fileConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Menu items are rendered via portal to document.body
+				const allItems = document.body.querySelectorAll('.mention-menu-item');
+				expect(allItems.length).toBe(7); // All 7 items rendered
+
+				// Find items by their label text content
+				let seedsItem: HTMLElement | null = null;
+				let gitkeepItem: HTMLElement | null = null;
+				let nestedItem: HTMLElement | null = null;
+
+				allItems.forEach((item) => {
+					const label = item.querySelector('.mention-menu-item-label')?.textContent;
+					if (label === 'seeds') seedsItem = item as HTMLElement;
+					if (label === '.gitkeep') gitkeepItem = item as HTMLElement;
+					if (label === 'deeply_nested.sql') nestedItem = item as HTMLElement;
+				});
+
+				expect(seedsItem).not.toBeNull();
+				expect(gitkeepItem).not.toBeNull();
+				expect(nestedItem).not.toBeNull();
+
+				// Item without indent should not have data-indent attribute
+				expect(seedsItem!.getAttribute('data-indent')).toBeNull();
+
+				// Item with indent: 1 should have data-indent="1"
+				expect(gitkeepItem!.getAttribute('data-indent')).toBe('1');
+
+				// Item with indent: 2 should have data-indent="2"
+				expect(nestedItem!.getAttribute('data-indent')).toBe('2');
+			});
+
+			it('does not preserve indent in search results (flat list)', () => {
+				const { container } = render(<Prompt mentionConfigs={fileConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Search for files
+				simulateTypingWithCursor(editableDiv, '@.sql');
+
+				// Indented items should not have indent in flat search results
+				const customersSqlItem = screen.getByText('customers.sql').closest('.mention-menu-item') as HTMLElement;
+				const deeplyNestedItem = screen.getByText('deeply_nested.sql').closest('.mention-menu-item') as HTMLElement;
+
+				// No data-indent attribute in search results (flat list)
+				expect(customersSqlItem.getAttribute('data-indent')).toBeNull();
+				expect(deeplyNestedItem.getAttribute('data-indent')).toBeNull();
+			});
+		});
+
+		describe('combined labelRight and indent', () => {
+			it('renders both labelRight and indent correctly', () => {
+				const { container } = render(<Prompt mentionConfigs={fileConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Check an item with both labelRight and indent
+				const nestedItem = screen.getByText('deeply_nested.sql').closest('.mention-menu-item') as HTMLElement;
+
+				// Should have indent
+				expect(nestedItem.getAttribute('data-indent')).toBe('2');
+
+				// Should have labelRight
+				const labelRight = nestedItem.querySelector('.mention-menu-item-label-right');
+				expect(labelRight?.textContent).toBe('models/staging/');
+			});
+
+			it('selecting item with labelRight and indent works correctly', () => {
+				const handleChange = vi.fn();
+				const { container } = render(<Prompt mentionConfigs={fileConfig} onChange={handleChange} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to and select nested file
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // .gitkeep
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // raw_customers.csv
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // raw_orders.csv
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // models
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // customers.sql
+				fireEvent.keyDown(editableDiv, { key: 'ArrowDown' }); // deeply_nested.sql
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				// Mention should be inserted with correct id
+				expect(handleChange).toHaveBeenCalledWith(
+					expect.stringContaining('@[nested-file]'),
+					expect.any(Array)
+				);
+
+				const mentionPill = container.querySelector('[data-mention="deeply_nested.sql"]');
+				expect(mentionPill).toBeInTheDocument();
+			});
+		});
+	});
+
 	describe('Mention ID Format and Tracking', () => {
 		const optionsWithIds = [
 			{ id: 'user-123', label: 'John Doe' },

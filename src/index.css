@@ -46,6 +46,9 @@
 	--prompt-mention-menu-item-label-font-size: 0.875rem;
 	--prompt-mention-menu-item-label-font-weight: 500;
 	--prompt-mention-menu-item-icon-height: 1.25rem;
+	--prompt-mention-menu-item-label-right-font-size: 0.75rem;
+	--prompt-mention-menu-item-label-right-color: #6b7280;
+	--prompt-mention-menu-item-indent-size: 1rem;
 
 	/* ===== Mention Menu Title ===== */
 	--prompt-mention-menu-title-padding: 0.5rem 0.75rem;
@@ -196,7 +199,25 @@
 	font-size: var(--prompt-mention-menu-item-label-font-size);
 	font-weight: var(--prompt-mention-menu-item-label-font-weight);
 	color: var(--prompt-mention-menu-color);
-	flex: 1;
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Menu Item Right Label (e.g., file path) */
+.mention-menu-item-label-right {
+	font-size: var(--prompt-mention-menu-item-label-right-font-size);
+	color: var(--prompt-mention-menu-item-label-right-color);
+	margin-left: 0.5rem;
+	flex: 0 1 auto;
+	max-width: 60%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	direction: rtl;
+	text-align: left;
 }
 
 /* Menu Item Icon */

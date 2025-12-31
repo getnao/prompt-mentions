@@ -4,7 +4,7 @@ export type { SelectedMention } from "./hooks/useContentEditable";
 
 // Theme exports for customization
 export type { PromptTheme, PresetThemeName } from "./types/theme";
-export { themeToStyles, presetThemes } from "./types/theme";
+export { themeToStyles, presetThemes, defaultTheme } from "./types/theme";
 
 // Extension icons utilities for customization
 export {
