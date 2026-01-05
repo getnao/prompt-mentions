@@ -5,23 +5,17 @@ A beautiful React component library for building AI prompts with @mentions. Feat
 [![npm version](https://img.shields.io/npm/v/prompt-mentions.svg)](https://www.npmjs.com/package/prompt-mentions)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/getnao/prompt-mentions/main/.github/demo.gif" alt="prompt-mentions demo" width="600" />
-</p>
-
 ## Features
 
 - 🎨 **Multiple preset themes** — Light, Cursor Dark, GitHub Dark, Minimal
 - 🎯 **Multiple trigger characters** — Use `@`, `#`, `/`, or any character
 - 📁 **Nested menus** — Navigate hierarchical options with Tab/Escape
 - ⌨️ **Full keyboard navigation** — Arrow keys, Enter, Tab, Escape
-- 🔍 **Real-time search** — Filter options as you type
 - 🏷️ **Mention pills** — Beautiful styled tags for selected mentions
-- 🖼️ **Custom icons** — Add icons to menu items
-- 📄 **Auto file icons** — Automatic icons based on file extensions
+- 🖼️ **Icons custom and auto** — Add icons to menu items, mentions. File extension icons are supported.
 - 🎛️ **Imperative API** — Programmatically append mentions via ref
 - 📱 **Message component** — Render sent messages with formatted mentions
-- 🎨 **Fully customizable** — CSS variables and theme objects
+- 🎨 **Fully CSS customizable** — CSS variables and theme objects
 
 ## Installation
 
@@ -442,9 +436,9 @@ Contributions are welcome! Please read our contributing guidelines and submit pu
 
 ## License
 
-MIT © [getnao](https://github.com/getnao)
+MIT © (https://github.com/getnao/prompt-mentions/blob/main/LICENSE)
 
 ---
 
-Made with ❤️ by [nao](https://getnao.ai)
+Made with ❤️ by [nao Labs](https://getnao.io)
 
