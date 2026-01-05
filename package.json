@@ -68,5 +68,13 @@
     "tslib": "^2.8.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getnao/prompt-mentions.git"
+  },
+  "homepage": "https://github.com/getnao/prompt-mentions",
+  "bugs": {
+    "url": "https://github.com/getnao/prompt-mentions/issues"
   }
 }
