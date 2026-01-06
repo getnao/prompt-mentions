@@ -1358,25 +1358,50 @@ const generateManyOptions = (count: number): MentionOption[] => {
 	return options;
 };
 
-const manyOptions = generateManyOptions(5000);
+const manyFileOptions = generateManyOptions(200000);
 
-export const PerformanceTest5000Entries: Story = {
-	name: 'Performance Test (5000 Entries)',
+// Wrap the 5000 entries in a "Files" submenu
+const manyOptionsWithSubmenu: MentionOption[] = [
+	{ id: 'quick-access', label: 'Quick Access', type: 'title' },
+	{ id: 'recent-1', label: 'App.tsx', labelRight: 'src/' },
+	{ id: 'recent-2', label: 'index.ts', labelRight: 'src/' },
+	{ id: 'recent-3', label: 'styles.css', labelRight: 'src/' },
+	{ id: 'divider-1', label: '', type: 'divider' },
+	{
+		id: 'files-submenu',
+		label: 'Files',
+		icon: <Files strokeWidth={1} />,
+		children: manyFileOptions,
+	},
+	{
+		id: 'docs-submenu',
+		label: 'Docs',
+		icon: <BookOpen strokeWidth={1} />,
+		children: [
+			{ id: 'readme', label: 'README.md' },
+			{ id: 'contributing', label: 'CONTRIBUTING.md' },
+			{ id: 'changelog', label: 'CHANGELOG.md' },
+		],
+	},
+];
+
+export const PerformanceTest200000Entries: Story = {
+	name: 'Performance Test (200,000 Entries in Submenu)',
 	render: () => (
 		<div className="flex flex-col gap-4">
 			<div className="text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
 				<p className="font-medium mb-2">⚡ Performance Test (Virtualized)</p>
-				<p>This story loads <strong>5,000 entries</strong> to test the menu's performance with a large dataset.</p>
+				<p>This story has <strong>200,000 entries</strong> inside the "Files" submenu to test performance.</p>
 				<p className="mt-2 text-xs text-gray-500">
-					Type <code className="bg-gray-100 px-1 rounded">@</code> to open the menu, then try searching to filter results.
+					Type <code className="bg-gray-100 px-1 rounded">@</code> to open the menu, then navigate to <strong>Files</strong> (press Tab or click).
 				</p>
 				<p className="mt-1 text-xs text-green-600">
 					✓ Virtualization is <strong>enabled by default</strong> - only visible items are rendered.
 				</p>
 			</div>
 			<Prompt
-				placeholder="Type @ to search through 5000 files..."
-				mentionConfigs={[{ trigger: '@', options: manyOptions, menuPosition: 'below' }]}
+				placeholder="Type @ then navigate to Files submenu..."
+				mentionConfigs={[{ trigger: '@', options: manyOptionsWithSubmenu, menuPosition: 'below' }]}
 				extensionIcons={true}
 			/>
 		</div>
@@ -1384,32 +1409,35 @@ export const PerformanceTest5000Entries: Story = {
 	parameters: {
 		docs: {
 			description: {
-				story: `This story tests the performance of the mention menu with a very large dataset (5,000 entries).
+				story: `This story tests the performance of the mention menu with a very large dataset (5,000 entries) inside a submenu.
 
-**Virtualization** is enabled by default (\`virtualizeMenu={true}\`), which means only visible items are rendered to the DOM. This ensures smooth scrolling and quick menu opening even with thousands of entries.
+**How to test:**
+1. Type \`@\` to open the menu
+2. Navigate to "Files" and press Tab (or click) to enter the submenu
+3. The submenu contains 200,000 file entries
+
+**Virtualization** is enabled by default, which means only visible items are rendered to the DOM. This ensures smooth scrolling and quick menu opening even with thousands of entries.
 
 Use this to verify:
-- Menu opens smoothly with many entries
+- Submenu opens smoothly with many entries
 - Search/filtering remains responsive
 - Scrolling through results is smooth
-- Memory usage remains reasonable
-
-The entries are generated programmatically with realistic file names and paths.`,
+- Memory usage remains reasonable`,
 			},
 		},
 	},
 };
 
-export const PerformanceTest5000EntriesDark: Story = {
-	name: 'Performance Test (5000 Entries, Dark)',
+export const PerformanceTest200000EntriesDark: Story = {
+	name: 'Performance Test (200,000 Entries in Submenu, Dark)',
 	render: () => (
 		<div className="bg-[#1F2126] p-6 rounded-lg">
 			<div className="flex flex-col gap-4">
 				<div className="text-sm text-gray-400 bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-4">
 					<p className="font-medium mb-2 text-yellow-500">⚡ Performance Test (Virtualized)</p>
-					<p>This story loads <strong className="text-yellow-400">5,000 entries</strong> to test the menu's performance with a large dataset.</p>
+					<p>This story has <strong className="text-yellow-400">200,000 entries</strong> inside the "Files" submenu.</p>
 					<p className="mt-2 text-xs text-gray-500">
-						Type <code className="bg-gray-800 px-1 rounded">@</code> to open the menu, then try searching to filter results.
+						Type <code className="bg-gray-800 px-1 rounded">@</code> to open the menu, then navigate to <strong className="text-gray-300">Files</strong>.
 					</p>
 					<p className="mt-1 text-xs text-green-400">
 						✓ Virtualization is <strong>enabled by default</strong> - only visible items are rendered.
@@ -1417,8 +1445,8 @@ export const PerformanceTest5000EntriesDark: Story = {
 				</div>
 				<Prompt
 					theme="cursorDark"
-					placeholder="Type @ to search through 5000 files..."
-					mentionConfigs={[{ trigger: '@', options: manyOptions, menuPosition: 'below' }]}
+					placeholder="Type @ then navigate to Files submenu..."
+					mentionConfigs={[{ trigger: '@', options: manyOptionsWithSubmenu, menuPosition: 'below' }]}
 					extensionIcons={true}
 				/>
 			</div>
