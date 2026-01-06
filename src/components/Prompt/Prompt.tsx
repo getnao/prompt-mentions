@@ -36,6 +36,12 @@ export interface PromptProps {
 	 * Only applies to options that don't already have an icon.
 	 */
 	extensionIcons?: boolean;
+	/**
+	 * When true, only renders visible menu items for better performance with large lists.
+	 * Virtualization is automatically applied when there are more than 50 items.
+	 * @default true
+	 */
+	virtualizeMenu?: boolean;
 }
 
 /**
@@ -152,6 +158,7 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		className = "",
 		style,
 		extensionIcons = false,
+		virtualizeMenu = true,
 	} = props;
 
 	// Process configs to add extension icons if enabled
@@ -228,6 +235,7 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 				isKeyboardNavigating={mentions.isKeyboardNavigating}
 				onMouseActivity={mentions.clearKeyboardNavigation}
 				themeStyles={themeStyles}
+				virtualizeMenu={virtualizeMenu}
 			/>
 		</div>
 	);

@@ -296,15 +296,18 @@ export function useContentEditable({
 				selectAllPressedRef.current = false;
 			}
 
-			if (modKey && e.key === "z" && !e.shiftKey) {
+			if (modKey && e.key.toLowerCase() === "z" && !e.shiftKey) {
 				e.preventDefault();
 				handleUndo();
-			} else if (modKey && e.key === "z" && e.shiftKey) {
+				return;
+			} else if (modKey && e.key.toLowerCase() === "z" && e.shiftKey) {
 				e.preventDefault();
 				handleRedo();
-			} else if (e.ctrlKey && e.key === "y" && !isMac) {
+				return;
+			} else if (e.ctrlKey && e.key.toLowerCase() === "y" && !isMac) {
 				e.preventDefault();
 				handleRedo();
+				return;
 			}
 
 			if (e.key === "Enter" && !e.shiftKey) {

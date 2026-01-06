@@ -1308,3 +1308,171 @@ export const ExternalMentionAppendDark: Story = {
 		},
 	},
 };
+
+// ========== Performance Test Story (5000 entries) ==========
+
+// Generate 5000 file-like entries for performance testing
+const generateManyOptions = (count: number): MentionOption[] => {
+	const folders = [
+		'src', 'lib', 'components', 'hooks', 'utils', 'services', 'api', 'types',
+		'models', 'controllers', 'views', 'layouts', 'pages', 'features', 'modules',
+		'config', 'constants', 'helpers', 'middleware', 'plugins', 'themes', 'assets',
+	];
+	const subfolders = [
+		'auth', 'user', 'dashboard', 'settings', 'profile', 'admin', 'common',
+		'shared', 'core', 'base', 'ui', 'data', 'network', 'storage', 'cache',
+	];
+	const extensions = ['.ts', '.tsx', '.js', '.jsx', '.css', '.scss', '.json', '.md', '.sql', '.yml'];
+	const prefixes = [
+		'index', 'main', 'App', 'Button', 'Modal', 'Form', 'Input', 'Select', 'Table',
+		'List', 'Card', 'Header', 'Footer', 'Sidebar', 'Nav', 'Menu', 'Dialog', 'Toast',
+		'Alert', 'Badge', 'Avatar', 'Icon', 'Image', 'Link', 'Text', 'Title', 'Label',
+		'Checkbox', 'Radio', 'Switch', 'Slider', 'Progress', 'Spinner', 'Skeleton',
+		'use', 'get', 'set', 'fetch', 'create', 'update', 'delete', 'handle', 'process',
+		'validate', 'transform', 'format', 'parse', 'serialize', 'deserialize', 'convert',
+	];
+	const suffixes = [
+		'', 'Utils', 'Helper', 'Service', 'Controller', 'Model', 'View', 'Context',
+		'Provider', 'Consumer', 'Hook', 'Store', 'Reducer', 'Action', 'Selector',
+		'Schema', 'Type', 'Interface', 'Enum', 'Const', 'Config', 'Test', 'Spec',
+	];
+
+	const options: MentionOption[] = [];
+
+	for (let i = 0; i < count; i++) {
+		const folder = folders[i % folders.length];
+		const subfolder = subfolders[Math.floor(i / folders.length) % subfolders.length];
+		const prefix = prefixes[i % prefixes.length];
+		const suffix = suffixes[Math.floor(i / prefixes.length) % suffixes.length];
+		const ext = extensions[i % extensions.length];
+		const fileName = `${prefix}${suffix}${i}${ext}`;
+		const path = `${folder}/${subfolder}/`;
+
+		options.push({
+			id: `${path}${fileName}`,
+			label: fileName,
+			labelRight: path,
+		});
+	}
+
+	return options;
+};
+
+const manyOptions = generateManyOptions(5000);
+
+export const PerformanceTest5000Entries: Story = {
+	name: 'Performance Test (5000 Entries)',
+	render: () => (
+		<div className="flex flex-col gap-4">
+			<div className="text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+				<p className="font-medium mb-2">⚡ Performance Test (Virtualized)</p>
+				<p>This story loads <strong>5,000 entries</strong> to test the menu's performance with a large dataset.</p>
+				<p className="mt-2 text-xs text-gray-500">
+					Type <code className="bg-gray-100 px-1 rounded">@</code> to open the menu, then try searching to filter results.
+				</p>
+				<p className="mt-1 text-xs text-green-600">
+					✓ Virtualization is <strong>enabled by default</strong> - only visible items are rendered.
+				</p>
+			</div>
+			<Prompt
+				placeholder="Type @ to search through 5000 files..."
+				mentionConfigs={[{ trigger: '@', options: manyOptions, menuPosition: 'below' }]}
+				extensionIcons={true}
+			/>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story: `This story tests the performance of the mention menu with a very large dataset (5,000 entries).
+
+**Virtualization** is enabled by default (\`virtualizeMenu={true}\`), which means only visible items are rendered to the DOM. This ensures smooth scrolling and quick menu opening even with thousands of entries.
+
+Use this to verify:
+- Menu opens smoothly with many entries
+- Search/filtering remains responsive
+- Scrolling through results is smooth
+- Memory usage remains reasonable
+
+The entries are generated programmatically with realistic file names and paths.`,
+			},
+		},
+	},
+};
+
+export const PerformanceTest5000EntriesDark: Story = {
+	name: 'Performance Test (5000 Entries, Dark)',
+	render: () => (
+		<div className="bg-[#1F2126] p-6 rounded-lg">
+			<div className="flex flex-col gap-4">
+				<div className="text-sm text-gray-400 bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-4">
+					<p className="font-medium mb-2 text-yellow-500">⚡ Performance Test (Virtualized)</p>
+					<p>This story loads <strong className="text-yellow-400">5,000 entries</strong> to test the menu's performance with a large dataset.</p>
+					<p className="mt-2 text-xs text-gray-500">
+						Type <code className="bg-gray-800 px-1 rounded">@</code> to open the menu, then try searching to filter results.
+					</p>
+					<p className="mt-1 text-xs text-green-400">
+						✓ Virtualization is <strong>enabled by default</strong> - only visible items are rendered.
+					</p>
+				</div>
+				<Prompt
+					theme="cursorDark"
+					placeholder="Type @ to search through 5000 files..."
+					mentionConfigs={[{ trigger: '@', options: manyOptions, menuPosition: 'below' }]}
+					extensionIcons={true}
+				/>
+			</div>
+		</div>
+	),
+	globals: {
+		backgrounds: { value: 'dark' }
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: 'Dark theme version of the 5000 entries performance test with virtualization enabled.',
+			},
+		},
+	},
+};
+
+export const VirtualizationDisabled: Story = {
+	name: 'Virtualization Disabled (100 items)',
+	render: () => {
+		const smallerOptions = generateManyOptions(100);
+		return (
+			<div className="flex flex-col gap-4">
+				<div className="text-sm text-gray-600 bg-orange-50 border border-orange-200 rounded-lg p-4">
+					<p className="font-medium mb-2">⚠️ Virtualization Disabled</p>
+					<p>This story shows 100 entries with virtualization explicitly disabled.</p>
+					<p className="mt-2 text-xs text-orange-600">
+						All 100 items are rendered to the DOM at once. For small lists, this may be acceptable.
+					</p>
+				</div>
+				<Prompt
+					placeholder="Type @ to browse files (no virtualization)..."
+					mentionConfigs={[{ trigger: '@', options: smallerOptions, menuPosition: 'below' }]}
+					extensionIcons={true}
+					virtualizeMenu={false}
+				/>
+			</div>
+		);
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: `You can disable virtualization by setting \`virtualizeMenu={false}\`.
+
+\`\`\`tsx
+<Prompt
+  virtualizeMenu={false}
+  mentionConfigs={[{ trigger: '@', options: options }]}
+/>
+\`\`\`
+
+**Note:** Virtualization is automatically skipped for lists with 50 or fewer items, even when enabled.
+Disabling virtualization for very large lists (1000+) may cause performance issues.`,
+			},
+		},
+	},
+};

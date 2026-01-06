@@ -340,6 +340,52 @@ describe('Prompt', () => {
 			fireEvent.keyDown(editableDiv, { key: 'z', ctrlKey: true, shiftKey: true });
 			expect(screen.queryByText('Enter text')).not.toBeInTheDocument();
 		});
+
+		it('undoes and redoes mention insertion correctly', () => {
+			const handleChange = vi.fn();
+			const { container } = render(
+				<Prompt onChange={handleChange} mentionConfigs={defaultConfig} />
+			);
+			const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+			// Type trigger to open mention menu and insert mention
+			simulateTypingWithCursor(editableDiv, '@');
+			fireEvent.keyDown(editableDiv, { key: 'Enter' }); // Select first option (John Doe)
+
+			// Should have the mention now
+			const mentionPill = container.querySelector('[data-mention="John Doe"]');
+			expect(mentionPill).toBeInTheDocument();
+			expect(handleChange).toHaveBeenCalledWith('@[john-doe] ', expect.any(Array));
+
+			// Undo - should remove the mention
+			fireEvent.keyDown(editableDiv, { key: 'z', ctrlKey: true });
+			expect(container.querySelector('[data-mention]')).not.toBeInTheDocument();
+
+			// Redo - should restore the mention
+			fireEvent.keyDown(editableDiv, { key: 'z', ctrlKey: true, shiftKey: true });
+			const restoredMention = container.querySelector('[data-mention="John Doe"]');
+			expect(restoredMention).toBeInTheDocument();
+			expect(restoredMention?.getAttribute('data-mention-id')).toBe('john-doe');
+		});
+
+		it('handles redo with uppercase Z key (Shift held)', () => {
+			const { container } = render(<Prompt mentionConfigs={defaultConfig} />);
+			const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+			editableDiv.textContent = 'Hello';
+			fireEvent.input(editableDiv);
+
+			editableDiv.textContent = 'Hello World';
+			fireEvent.input(editableDiv);
+
+			// Undo
+			fireEvent.keyDown(editableDiv, { key: 'z', ctrlKey: true });
+			expect(editableDiv.textContent).toBe('Hello');
+
+			// Redo with uppercase Z (as some browsers report)
+			fireEvent.keyDown(editableDiv, { key: 'Z', ctrlKey: true, shiftKey: true });
+			expect(editableDiv.textContent).toBe('Hello World');
+		});
 	});
 
 	describe('Mentions', () => {
@@ -3510,6 +3556,277 @@ describe('Prompt', () => {
 				fireEvent.click(focusBtn);
 
 				expect(document.activeElement).toBe(editableDiv);
+			});
+		});
+	});
+
+	describe('Menu Virtualization', () => {
+		// Generate a large number of options for testing
+		const generateManyOptions = (count: number): MentionOption[] => {
+			const options: MentionOption[] = [];
+			for (let i = 0; i < count; i++) {
+				options.push({
+					id: `option-${i}`,
+					label: `Option ${i}`,
+					labelRight: `path/to/file-${i}/`,
+				});
+			}
+			return options;
+		};
+
+		const manyOptions = generateManyOptions(200);
+		const manyOptionsConfig: MentionConfig[] = [{ trigger: '@', options: manyOptions }];
+
+		describe('virtualizeMenu prop', () => {
+			it('defaults to true (virtualization enabled)', () => {
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={manyOptionsConfig}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Menu should open
+				expect(document.querySelector('.mention-menu')).toBeInTheDocument();
+
+				// With virtualization enabled and 200 items, not all items should be rendered
+				const menuItems = document.querySelectorAll('.mention-menu-item');
+				expect(menuItems.length).toBeLessThan(200);
+			});
+
+			it('renders all items when virtualizeMenu is false', () => {
+				const smallOptions = generateManyOptions(30); // Under threshold
+				const smallConfig: MentionConfig[] = [{ trigger: '@', options: smallOptions }];
+
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={smallConfig}
+						virtualizeMenu={false}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// All items should be rendered
+				const menuItems = document.querySelectorAll('.mention-menu-item');
+				expect(menuItems.length).toBe(30);
+			});
+
+			it('renders all items when list is small (under 50 items)', () => {
+				const smallOptions = generateManyOptions(40);
+				const smallConfig: MentionConfig[] = [{ trigger: '@', options: smallOptions }];
+
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={smallConfig}
+						virtualizeMenu={true}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// All items should be rendered for small lists
+				const menuItems = document.querySelectorAll('.mention-menu-item');
+				expect(menuItems.length).toBe(40);
+			});
+		});
+
+		describe('virtualized menu behavior', () => {
+			it('shows selected item when navigating with arrow keys', () => {
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={manyOptionsConfig}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate down multiple times
+				for (let i = 0; i < 20; i++) {
+					fireEvent.keyDown(editableDiv, { key: 'ArrowDown' });
+				}
+
+				// The selected item should exist in the DOM
+				const selectedItem = document.querySelector('.mention-menu-item-selected');
+				expect(selectedItem).toBeInTheDocument();
+				expect(selectedItem?.textContent).toContain('Option 20');
+			});
+
+			it('allows selecting items via keyboard navigation', () => {
+				const handleMentionAdded = vi.fn();
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={manyOptionsConfig}
+						onMentionAdded={handleMentionAdded}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to item 10
+				for (let i = 0; i < 10; i++) {
+					fireEvent.keyDown(editableDiv, { key: 'ArrowDown' });
+				}
+
+				// Select with Enter
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleMentionAdded).toHaveBeenCalledWith(
+					expect.objectContaining({
+						id: 'option-10',
+						label: 'Option 10',
+					})
+				);
+			});
+
+			it('filters options and shows matching results', () => {
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={manyOptionsConfig}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@100');
+
+				// Should show Option 100 and others matching "100"
+				const menuItems = document.querySelectorAll('.mention-menu-item');
+				expect(menuItems.length).toBeGreaterThan(0);
+
+				// Should find the exact match
+				const labels = Array.from(menuItems).map(item => item.textContent);
+				expect(labels.some(label => label?.includes('Option 100'))).toBe(true);
+			});
+
+			it('handles dividers and titles in virtualized list', () => {
+				const optionsWithDividers: MentionOption[] = [
+					{ id: 'title-1', label: 'Section 1', type: 'title' },
+					...generateManyOptions(50).map(o => ({ ...o, id: `section1-${o.id}` })),
+					{ id: 'divider-1', label: '', type: 'divider' },
+					{ id: 'title-2', label: 'Section 2', type: 'title' },
+					...generateManyOptions(50).map(o => ({ ...o, id: `section2-${o.id}` })),
+				];
+				const config: MentionConfig[] = [{ trigger: '@', options: optionsWithDividers }];
+
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={config}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Should render titles and dividers
+				const title = document.querySelector('.mention-menu-title');
+				expect(title).toBeInTheDocument();
+				expect(title?.textContent).toContain('Section 1');
+			});
+
+			it('navigates to last item with End key or continuous ArrowDown', () => {
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={manyOptionsConfig}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Navigate to the last item using ArrowUp (wraps around)
+				fireEvent.keyDown(editableDiv, { key: 'ArrowUp' });
+
+				// The selected item should be the last one
+				const selectedItem = document.querySelector('.mention-menu-item-selected');
+				expect(selectedItem).toBeInTheDocument();
+				expect(selectedItem?.textContent).toContain('Option 199');
+			});
+
+			it('maintains selection after search clears', () => {
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={manyOptionsConfig}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Type search query
+				simulateTypingWithCursor(editableDiv, '@10');
+
+				// Should filter
+				let menuItems = document.querySelectorAll('.mention-menu-item');
+				const filteredCount = menuItems.length;
+				expect(filteredCount).toBeLessThan(200);
+
+				// Clear search (back to @)
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Should show virtualized list again with selection
+				const selectedItem = document.querySelector('.mention-menu-item-selected');
+				expect(selectedItem).toBeInTheDocument();
+			});
+		});
+
+		describe('performance with large datasets', () => {
+			it('handles 1000 items without crashing', () => {
+				const largeOptions = generateManyOptions(1000);
+				const largeConfig: MentionConfig[] = [{ trigger: '@', options: largeOptions }];
+
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={largeConfig}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Menu should open
+				expect(document.querySelector('.mention-menu')).toBeInTheDocument();
+
+				// Should render items (virtualization reduces rendered count)
+				const menuItems = document.querySelectorAll('.mention-menu-item');
+				expect(menuItems.length).toBeLessThan(1000);
+				expect(menuItems.length).toBeGreaterThan(0);
+			});
+
+			it('renders fewer items than total with virtualization enabled', () => {
+				const { container } = render(
+					<Prompt
+						placeholder="Type @"
+						mentionConfigs={manyOptionsConfig}
+					/>
+				);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				simulateTypingWithCursor(editableDiv, '@');
+
+				// Virtualization should render fewer than total items
+				const menuItems = document.querySelectorAll('.mention-menu-item');
+
+				// With virtualization enabled, we should render significantly fewer than 200 items
+				// The exact number depends on viewport height and item heights
+				// In JSDOM, the viewport simulation may not be accurate, but we should still
+				// see a reduction from the full 200 items
+				expect(menuItems.length).toBeLessThan(200);
+				expect(menuItems.length).toBeGreaterThan(0);
 			});
 		});
 	});
