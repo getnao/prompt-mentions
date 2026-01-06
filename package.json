@@ -1,6 +1,6 @@
 {
   "name": "prompt-mentions",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "React component library to add an AI prompt with mentions.",
   "type": "module",
   "main": "./dist/index.cjs",
