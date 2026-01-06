@@ -18,6 +18,16 @@ export interface UseHistoryReturn {
 	canRedo: () => boolean;
 	isUndoRedo: () => boolean;
 	setUndoRedo: (value: boolean) => void;
+	/**
+	 * Returns the current history entry's content, or empty string if none.
+	 */
+	getCurrentContent: () => string;
+	/**
+	 * Pops entries from history while the predicate returns true.
+	 * Useful for consolidating multiple entries into a single undoable action.
+	 * Returns the number of entries removed.
+	 */
+	popWhile: (predicate: (content: string) => boolean) => number;
 }
 
 const DEFAULT_MAX_SIZE = 100;
@@ -81,6 +91,28 @@ export function useHistory({
 		isUndoRedoRef.current = value;
 	}, []);
 
+	const getCurrentContent = useCallback((): string => {
+		const currentEntry = historyRef.current[indexRef.current];
+		return currentEntry?.content ?? "";
+	}, []);
+
+	const popWhile = useCallback((predicate: (content: string) => boolean): number => {
+		let removed = 0;
+		// Pop entries while predicate is true and we can go back
+		while (indexRef.current > 0) {
+			const currentEntry = historyRef.current[indexRef.current];
+			if (currentEntry && predicate(currentEntry.content)) {
+				// Remove the current entry and move index back
+				historyRef.current.splice(indexRef.current, 1);
+				indexRef.current--;
+				removed++;
+			} else {
+				break;
+			}
+		}
+		return removed;
+	}, []);
+
 	return {
 		push,
 		undo,
@@ -89,6 +121,8 @@ export function useHistory({
 		canRedo,
 		isUndoRedo,
 		setUndoRedo,
+		getCurrentContent,
+		popWhile,
 	};
 }
 

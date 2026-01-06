@@ -158,7 +158,14 @@ export function useContentEditable({
 		triggers,
 		mentionConfigs,
 		mentionRefs,
-		onInserted: (newValue) => {
+		onInserted: (newValue, trigger) => {
+			// Consolidate history: remove entries from typing the trigger + search text
+			// so that undo removes the entire mention in one step (including the trigger)
+			const escapedTrigger = trigger.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+			// Match content ending with trigger followed by non-bracket characters (search text)
+			const triggerPattern = new RegExp(`${escapedTrigger}[^\\[]*$`);
+			history.popWhile((content) => triggerPattern.test(content));
+
 			updateState(newValue);
 			saveToHistory();
 		},

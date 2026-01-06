@@ -10,7 +10,7 @@ export interface UseMentionInsertionOptions {
 	triggers: string[];
 	mentionConfigs: MentionConfig[];
 	mentionRefs: MentionRefs;
-	onInserted: (newValue: string) => void;
+	onInserted: (newValue: string, trigger: string) => void;
 	closeMenu: () => void;
 	enterSubmenu: (option: MentionOption) => void;
 }
@@ -77,7 +77,7 @@ export function useMentionInsertion({
 			mentionRefs.activeTrigger.current = null;
 			closeMenu();
 
-			onInserted(newValue);
+			onInserted(newValue, activeTrigger);
 		},
 		[getElement, getValue, triggers, mentionConfigs, mentionRefs, onInserted, closeMenu, enterSubmenu]
 	);
