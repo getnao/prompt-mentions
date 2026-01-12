@@ -296,8 +296,9 @@ const MentionMenu = ({
 	// Scroll selected item into view synchronously to avoid visual jank
 	// useLayoutEffect ensures scroll happens before paint, so selection and scroll appear simultaneous
 	// We use manual scrollTop calculation instead of scrollIntoView for more predictable behavior
+	// Only scroll when using keyboard navigation to avoid infinite scroll loop on mouse hover
 	useLayoutEffect(() => {
-		if (isOpen && menuRef.current) {
+		if (isOpen && menuRef.current && isKeyboardNavigating) {
 			const menu = menuRef.current;
 
 			// Get menu padding to ensure items aren't flush against edges
@@ -359,7 +360,7 @@ const MentionMenu = ({
 				}
 			}
 		}
-	}, [isOpen, selectedIndex, options, virtualizeMenu, itemOffsets, getItemHeight]);
+	}, [isOpen, selectedIndex, options, virtualizeMenu, itemOffsets, getItemHeight, isKeyboardNavigating]);
 
 	if (!isOpen || options.length === 0) return null;
 

@@ -3525,6 +3525,58 @@ describe('Prompt', () => {
 				// Icon should be rendered in the pill
 				expect(pill?.querySelector('.mention-pill-icon')).toBeInTheDocument();
 			});
+
+			it('does not duplicate trigger on appendMention undo/redo from empty', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="append-btn"
+								onClick={() => ref.current?.appendMention({ id: 'john-doe', label: 'John Doe' })}
+							>
+								Append
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				// Start from empty and append mention
+				const appendBtn = screen.getByTestId('append-btn');
+				fireEvent.click(appendBtn);
+
+				// Verify mention was added
+				expect(container.querySelectorAll('[data-mention]').length).toBe(1);
+				expect(handleChange).toHaveBeenLastCalledWith('@[john-doe] ', expect.any(Array));
+
+				// Undo - should remove the mention
+				fireEvent.keyDown(editableDiv, { key: 'z', ctrlKey: true });
+				expect(container.querySelector('[data-mention]')).not.toBeInTheDocument();
+				expect(editableDiv.textContent).toBe('');
+
+				// Redo - should restore mention without duplicating trigger
+				fireEvent.keyDown(editableDiv, { key: 'z', ctrlKey: true, shiftKey: true });
+
+				// Should have exactly one mention
+				expect(container.querySelectorAll('[data-mention]').length).toBe(1);
+
+				// Check there are no duplicate triggers in the DOM
+				expect(editableDiv.innerHTML).not.toContain('@@');
+				expect(editableDiv.textContent).not.toContain('@@');
+
+				// Verify serialized value is correct
+				expect(handleChange).toHaveBeenLastCalledWith('@[john-doe] ', expect.any(Array));
+			});
 		});
 
 		describe('focus', () => {
@@ -3556,6 +3608,359 @@ describe('Prompt', () => {
 				fireEvent.click(focusBtn);
 
 				expect(document.activeElement).toBe(editableDiv);
+			});
+		});
+
+		describe('insertText', () => {
+			it('inserts text at the end when prompt is empty', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('Hello world')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				expect(editableDiv.textContent).toBe('Hello world');
+				expect(handleChange).toHaveBeenCalledWith('Hello world', []);
+			});
+
+			it('inserts text and opens mention menu when @ is inserted', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('@')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				render(<RefTestComponent />);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				// Mention menu should be open
+				expect(screen.getByText('John Doe')).toBeInTheDocument();
+				expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+			});
+
+			it('inserts @ with search text and filters menu options', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('@john')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				render(<RefTestComponent />);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				// Mention menu should show filtered results
+				expect(screen.getByText('John Doe')).toBeInTheDocument();
+				expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
+			});
+
+			it('appends text to existing content', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								initialValue="Hello "
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('world')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				expect(editableDiv.textContent).toBe('Hello world');
+				expect(handleChange).toHaveBeenCalledWith('Hello world', []);
+			});
+
+			it('inserts @ after existing text and opens menu', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								initialValue="Hello "
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('@')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				render(<RefTestComponent />);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				// Mention menu should be open
+				expect(screen.getByText('John Doe')).toBeInTheDocument();
+			});
+
+			it('works with different trigger characters', () => {
+				const handleChange = vi.fn();
+
+				const hashOptions: MentionOption[] = [
+					{ id: 'bug', label: 'bug' },
+					{ id: 'feature', label: 'feature' },
+				];
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={[
+									{ trigger: '@', options: defaultOptions },
+									{ trigger: '#', options: hashOptions },
+								]}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('#')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				render(<RefTestComponent />);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				// Hash menu should be open
+				expect(screen.getByText('bug')).toBeInTheDocument();
+				expect(screen.getByText('feature')).toBeInTheDocument();
+			});
+
+			it('allows selecting mention after programmatic @ insertion', () => {
+				const handleChange = vi.fn();
+				const handleMentionAdded = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+								onMentionAdded={handleMentionAdded}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('@')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				// Mention menu should be open
+				expect(screen.getByText('John Doe')).toBeInTheDocument();
+
+				// Press Enter to select first option
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				// Mention should be inserted
+				const pill = container.querySelector('[data-mention="John Doe"]');
+				expect(pill).toBeInTheDocument();
+				expect(handleMentionAdded).toHaveBeenCalledWith(
+					expect.objectContaining({
+						id: 'john-doe',
+						label: 'John Doe',
+						trigger: '@',
+					})
+				);
+			});
+
+			it('inserts multiple characters including @ and filters', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('Hey @ja')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				render(<RefTestComponent />);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				// Mention menu should show filtered results (jane matches 'ja')
+				expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+				expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
+			});
+
+			it('focuses the prompt when insertText is called', () => {
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								mentionConfigs={defaultConfig}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('test')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				expect(document.activeElement).not.toBe(editableDiv);
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				expect(document.activeElement).toBe(editableDiv);
+			});
+
+			it('inserts @ after existing mention', () => {
+				const handleChange = vi.fn();
+
+				const RefTestComponent = () => {
+					const ref = useRef<PromptHandle>(null);
+					return (
+						<div>
+							<Prompt
+								ref={ref}
+								initialValue="@[john-doe] "
+								mentionConfigs={defaultConfig}
+								onChange={handleChange}
+							/>
+							<button
+								data-testid="insert-btn"
+								onClick={() => ref.current?.insertText('@')}
+							>
+								Insert
+							</button>
+						</div>
+					);
+				};
+
+				const { container } = render(<RefTestComponent />);
+
+				// Verify initial mention is there
+				expect(container.querySelector('[data-mention="John Doe"]')).toBeInTheDocument();
+
+				const insertBtn = screen.getByTestId('insert-btn');
+				fireEvent.click(insertBtn);
+
+				// Mention menu should be open - verify by checking menu is visible
+				const menu = document.querySelector('.mention-menu');
+				expect(menu).toBeInTheDocument();
+
+				// Menu should contain both options
+				const menuItems = document.querySelectorAll('.mention-menu-item');
+				expect(menuItems.length).toBe(2);
 			});
 		});
 	});

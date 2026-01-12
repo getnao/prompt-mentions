@@ -71,6 +71,12 @@ export interface UseContentEditableReturn {
 	 * @param trigger - Optional trigger character (defaults to first configured trigger)
 	 */
 	appendMention: (option: MentionOption, trigger?: string) => void;
+	/**
+	 * Inserts text at the current cursor position (or at the end if not focused).
+	 * Behaves exactly like typing - triggers mention menu when a trigger character is inserted.
+	 * @param text - The text to insert
+	 */
+	insertText: (text: string) => void;
 }
 
 export interface CaretCoordinates {

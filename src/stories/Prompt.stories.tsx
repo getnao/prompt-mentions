@@ -1309,6 +1309,232 @@ export const ExternalMentionAppendDark: Story = {
 	},
 };
 
+// ========== Programmatic Text Insertion Stories ==========
+
+const InsertTextShowcase = () => {
+	const promptRef = useRef<PromptHandle>(null);
+	const [lastAction, setLastAction] = useState<string>('');
+	const [events, setEvents] = useState<{ type: string; data: unknown; time: Date }[]>([]);
+
+	const addEvent = (type: string, data: unknown) => {
+		setEvents(prev => [{ type, data, time: new Date() }, ...prev].slice(0, 8));
+	};
+
+	const handleInsert = (text: string) => {
+		promptRef.current?.insertText(text);
+		setLastAction(`Inserted: "${text}"`);
+	};
+
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="text-sm text-gray-600">
+				<p className="font-medium mb-2">Programmatic Text Insertion Demo</p>
+				<p>Click the buttons below to insert text programmatically. The insertion behaves exactly like typing - including opening the mention menu when @ is inserted!</p>
+			</div>
+
+			<Prompt
+				ref={promptRef}
+				placeholder="Type here or use buttons to insert text..."
+				mentionConfigs={[{ trigger: '@', options: externalMentionOptions }]}
+				onChange={(value, mentions) => addEvent('onChange', { value, mentions })}
+				onMentionAdded={(mention) => addEvent('onMentionAdded', mention)}
+			/>
+
+			<div className="flex flex-col gap-4">
+				<div>
+					<h4 className="text-sm font-semibold text-gray-700 mb-2">Insert Text</h4>
+					<div className="flex flex-wrap gap-2">
+						<button
+							onClick={() => handleInsert('Hello world ')}
+							className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
+						>
+							"Hello world "
+						</button>
+						<button
+							onClick={() => handleInsert('Check out ')}
+							className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
+						>
+							"Check out "
+						</button>
+					</div>
+				</div>
+
+				<div>
+					<h4 className="text-sm font-semibold text-gray-700 mb-2">Insert @ Trigger (Opens Menu)</h4>
+					<div className="flex flex-wrap gap-2">
+						<button
+							onClick={() => handleInsert('@')}
+							className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors"
+						>
+							@
+						</button>
+						<button
+							onClick={() => handleInsert('@ali')}
+							className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors"
+						>
+							@ali (filtered)
+						</button>
+						<button
+							onClick={() => handleInsert('Hey @')}
+							className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors"
+						>
+							"Hey @"
+						</button>
+					</div>
+				</div>
+			</div>
+
+			{lastAction && (
+				<div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+					<span className="text-sm text-gray-600">Last action: </span>
+					<span className="text-sm font-mono text-gray-800">{lastAction}</span>
+				</div>
+			)}
+
+			{events.length > 0 && (
+				<div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+					<h4 className="text-xs font-semibold text-gray-700 mb-2">Recent Events:</h4>
+					<div className="space-y-1.5 max-h-48 overflow-auto">
+						{events.map((evt, i) => (
+							<div key={i} className="text-xs font-mono bg-white p-2 rounded border border-gray-100 flex gap-2">
+								<span className="text-gray-400 shrink-0">{evt.time.toLocaleTimeString()}</span>
+								<span className={`font-semibold shrink-0 ${evt.type === 'onMentionAdded' ? 'text-green-600' : 'text-blue-600'}`}>{evt.type}</span>
+								<span className="text-gray-600 truncate">{JSON.stringify(evt.data)}</span>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+};
+
+export const ProgrammaticTextInsertion: Story = {
+	name: 'Programmatic Text Insertion (insertText)',
+	render: () => <InsertTextShowcase />,
+	parameters: {
+		docs: {
+			description: {
+				story: `Use \`insertText\` to programmatically insert text at the cursor position. The insertion behaves exactly like typing - it triggers the mention menu when a trigger character is inserted!
+
+### Usage Example
+
+\`\`\`tsx
+import { useRef } from 'react';
+import { Prompt, PromptHandle } from 'prompt-mentions';
+
+function MyComponent() {
+  const promptRef = useRef<PromptHandle>(null);
+
+  const handleInsertMentionTrigger = () => {
+    // Insert @ to open the mention menu
+    promptRef.current?.insertText('@');
+  };
+
+  const handleInsertWithSearch = () => {
+    // Insert @john to open the menu with "john" as search text
+    promptRef.current?.insertText('@john');
+  };
+
+  const handleInsertText = () => {
+    // Insert plain text at cursor position
+    promptRef.current?.insertText('Hello world');
+  };
+
+  return (
+    <>
+      <Prompt
+        ref={promptRef}
+        mentionConfigs={[{ trigger: '@', options: [...] }]}
+      />
+      <button onClick={handleInsertMentionTrigger}>Insert @</button>
+      <button onClick={handleInsertWithSearch}>Insert @john</button>
+      <button onClick={handleInsertText}>Insert "Hello world"</button>
+    </>
+  );
+}
+\`\`\`
+
+### Key Features
+
+- **Behaves like typing**: Triggers all the same callbacks and behaviors as manual input
+- **Opens mention menu**: When you insert a trigger character like \`@\`, the menu opens just like when typing
+- **Supports search**: Insert \`@partial\` to open the menu with pre-filtered results
+- **Works with any trigger**: Works with all configured triggers (\`@\`, \`#\`, \`/\`, etc.)
+- **Focuses the prompt**: Automatically focuses the input if it wasn't focused
+
+### API
+
+\`\`\`typescript
+interface PromptHandle {
+  insertText: (text: string) => void;
+  // ... other methods
+}
+\`\`\`
+`,
+			},
+		},
+	},
+};
+
+// Dark theme version
+const InsertTextDarkShowcase = () => {
+	const promptRef = useRef<PromptHandle>(null);
+
+	const quickInserts = [
+		{ label: 'Hello', text: 'Hello ' },
+		{ label: '@', text: '@' },
+		{ label: '@alice', text: '@alice' },
+		{ label: 'Check ', text: 'Check ' },
+	];
+
+	return (
+		<div className="bg-[#1F2126] p-6 rounded-lg">
+			<div className="flex flex-col gap-4">
+				<Prompt
+					ref={promptRef}
+					theme="cursorDark"
+					placeholder="Ask a question about your code..."
+					mentionConfigs={[{ trigger: '@', options: cursorMentionOptions, menuPosition: 'above' }]}
+					extensionIcons={true}
+				/>
+
+				<div className="flex gap-2 flex-wrap">
+					<span className="text-xs text-gray-500 self-center">Quick insert:</span>
+					{quickInserts.map((item) => (
+						<button
+							key={item.label}
+							onClick={() => promptRef.current?.insertText(item.text)}
+							className="px-2 py-1 text-xs bg-[#2d2d30] hover:bg-[#3d3d40] text-gray-300 rounded transition-colors"
+						>
+							{item.label}
+						</button>
+					))}
+				</div>
+
+				<div className="text-xs text-gray-500">
+					💡 Tip: Click "@" to open the mention menu programmatically
+				</div>
+			</div>
+		</div>
+	);
+};
+
+export const ProgrammaticTextInsertionDark: Story = {
+	name: 'Programmatic Text Insertion (Dark Theme)',
+	render: () => <InsertTextDarkShowcase />,
+	globals: {
+		backgrounds: { value: 'dark' }
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: 'The insertText feature works seamlessly with dark themes. Try clicking "@" to programmatically open the mention menu.',
+			},
+		},
+	},
+};
+
 // ========== Performance Test Story (5000 entries) ==========
 
 // Generate 5000 file-like entries for performance testing

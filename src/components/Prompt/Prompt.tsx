@@ -59,6 +59,12 @@ export interface PromptHandle {
 	 * Focuses the prompt input.
 	 */
 	focus: () => void;
+	/**
+	 * Inserts text at the current cursor position (or at the end if not focused).
+	 * Behaves exactly like typing - triggers mention menu when a trigger character is inserted.
+	 * @param text - The text to insert
+	 */
+	insertText: (text: string) => void;
 }
 
 function resolveTheme(theme: PromptProps['theme']): {
@@ -167,7 +173,7 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		[mentionConfigs, extensionIcons]
 	);
 
-	const { ref, isEmpty, handlers, mentions, appendMention } = useContentEditable({
+	const { ref, isEmpty, handlers, mentions, appendMention, insertText } = useContentEditable({
 		initialValue,
 		mentionConfigs: processedConfigs,
 		onChange,
@@ -185,7 +191,10 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		focus: () => {
 			ref.current?.focus();
 		},
-	}), [appendMention, ref]);
+		insertText: (text: string) => {
+			insertText(text);
+		},
+	}), [appendMention, insertText, ref]);
 
 	// Get the menu position for the currently active trigger
 	const activeConfig = processedConfigs.find(c => c.trigger === mentions.activeTrigger);

@@ -504,6 +504,71 @@ export function useContentEditable({
 		[getValue, triggers, mentionConfigs, updateState, saveToHistory]
 	);
 
+	/**
+	 * Inserts text at the current cursor position (or at the end if not focused).
+	 * Behaves exactly like typing - triggers mention menu when a trigger character is inserted.
+	 * @param text - The text to insert
+	 */
+	const insertText = useCallback(
+		(text: string) => {
+			const el = ref.current;
+			if (!el) return;
+
+			// Focus the element if it's not already focused
+			if (document.activeElement !== el) {
+				el.focus();
+			}
+
+			const sel = SelectionUtils.get();
+			if (!sel) return;
+
+			// Get current selection/cursor position
+			let range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+
+			// If no range or selection is outside our element, position at the end
+			if (!range || !el.contains(range.commonAncestorContainer)) {
+				range = document.createRange();
+				// Position at the end of the content
+				if (el.lastChild) {
+					if (el.lastChild.nodeType === Node.TEXT_NODE) {
+						range.setStart(el.lastChild, el.lastChild.textContent?.length ?? 0);
+					} else {
+						range.setStartAfter(el.lastChild);
+					}
+				} else {
+					range.setStart(el, 0);
+				}
+				range.collapse(true);
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}
+
+			// Delete any selected content first
+			if (!range.collapsed) {
+				range.deleteContents();
+			}
+
+			// Insert the text as a text node
+			const textNode = document.createTextNode(text);
+			range.insertNode(textNode);
+
+			// Move cursor to after the inserted text
+			range.setStartAfter(textNode);
+			range.collapse(true);
+			sel.removeAllRanges();
+			sel.addRange(range);
+
+			// Normalize the element to merge adjacent text nodes
+			el.normalize();
+
+			// Trigger the same logic as typing: update state, save history, check for mentions
+			updateState(getValue());
+			saveToHistory();
+			checkForMentionTrigger();
+		},
+		[getValue, updateState, saveToHistory, checkForMentionTrigger]
+	);
+
 	return {
 		ref,
 		isEmpty,
@@ -523,5 +588,6 @@ export function useContentEditable({
 			clearKeyboardNavigation: mentions.clearKeyboardNavigation,
 		},
 		appendMention,
+		insertText,
 	};
 }
