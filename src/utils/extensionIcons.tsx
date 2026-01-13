@@ -331,8 +331,8 @@ export function getExtensionIcon(label: string): ReactNode | undefined {
 	// Extract extension from the label
 	const lastDotIndex = label.lastIndexOf(".");
 	if (lastDotIndex === -1 || lastDotIndex === label.length - 1) {
-		// No extension found, return undefined (use default or no icon)
-		return undefined;
+		// No extension found, return default file icon
+		return <FileIcon />;
 	}
 
 	const extension = label.slice(lastDotIndex + 1).toLowerCase();
