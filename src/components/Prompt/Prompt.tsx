@@ -1,8 +1,9 @@
-import { useMemo, forwardRef, useImperativeHandle } from "react";
+import { useMemo, forwardRef, useImperativeHandle, useRef, useState, useLayoutEffect } from "react";
 import { useContentEditable } from "../../hooks/useContentEditable";
 import type { MentionOption } from "../../hooks/useMentions";
 import type { SelectedMention } from "../../hooks/useContentEditable";
 import MentionMenu from "./MentionMenu";
+import type { ContainerRect } from "./MentionMenu";
 import type { PromptTheme, PresetThemeName } from "../../types/theme";
 import { themeToStyles, presetThemes } from "../../types/theme";
 import { getExtensionIcon } from "../../utils/extensionIcons";
@@ -173,6 +174,34 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		[mentionConfigs, extensionIcons]
 	);
 
+	// Container ref for measuring bounds (for full-width menu positioning)
+	const containerRef = useRef<HTMLDivElement>(null);
+	const [containerRect, setContainerRect] = useState<ContainerRect | undefined>(undefined);
+
+	// Update container bounds when menu opens or container resizes
+	useLayoutEffect(() => {
+		if (!containerRef.current) return;
+
+		const updateBounds = () => {
+			const rect = containerRef.current?.getBoundingClientRect();
+			if (rect) {
+				setContainerRect({
+					left: rect.left,
+					right: rect.right,
+					width: rect.width,
+				});
+			}
+		};
+
+		updateBounds();
+
+		// Update on resize
+		const resizeObserver = new ResizeObserver(updateBounds);
+		resizeObserver.observe(containerRef.current);
+
+		return () => resizeObserver.disconnect();
+	}, []);
+
 	const { ref, isEmpty, handlers, mentions, appendMention, insertText } = useContentEditable({
 		initialValue,
 		mentionConfigs: processedConfigs,
@@ -217,7 +246,7 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 	].filter(Boolean).join(' ');
 
 	return (
-		<div className={combinedClassName} style={combinedStyles}>
+		<div ref={containerRef} className={combinedClassName} style={combinedStyles}>
 			<div
 				ref={ref}
 				contentEditable
@@ -245,6 +274,7 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 				onMouseActivity={mentions.clearKeyboardNavigation}
 				themeStyles={themeStyles}
 				virtualizeMenu={virtualizeMenu}
+				containerRect={containerRect}
 			/>
 		</div>
 	);

@@ -4,6 +4,12 @@ import type { MentionOption, CaretRect } from "../../hooks/useMentions";
 
 export type MentionMenuPosition = "above" | "below";
 
+export interface ContainerRect {
+	left: number;
+	right: number;
+	width: number;
+}
+
 export interface MentionMenuProps {
 	isOpen: boolean;
 	caretRect: CaretRect;
@@ -24,6 +30,11 @@ export interface MentionMenuProps {
 	 * @default true
 	 */
 	virtualizeMenu?: boolean;
+	/**
+	 * Container bounds for full-width positioning fallback.
+	 * When the menu doesn't fit on left or right, it will take the full width of the container.
+	 */
+	containerRect?: ContainerRect | undefined;
 }
 
 const ChevronRight = () => (
@@ -77,6 +88,8 @@ interface MeasuredHeights {
 	title: number;
 }
 
+type HorizontalAlignment = 'left' | 'right' | 'fullWidth';
+
 const MentionMenu = ({
 	isOpen,
 	caretRect,
@@ -93,12 +106,13 @@ const MentionMenu = ({
 	onMouseActivity,
 	themeStyles,
 	virtualizeMenu = true,
+	containerRect,
 }: MentionMenuProps) => {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const [actualPosition, setActualPosition] = useState<"above" | "below">(preferredPosition);
 	const [menuHeight, setMenuHeight] = useState(0);
 	const [menuWidth, setMenuWidth] = useState(0);
-	const [alignRight, setAlignRight] = useState(false);
+	const [horizontalAlignment, setHorizontalAlignment] = useState<HorizontalAlignment>('left');
 	const [scrollTop, setScrollTop] = useState(0);
 	const [measuredHeights, setMeasuredHeights] = useState<MeasuredHeights | null>(null);
 
@@ -283,15 +297,21 @@ const MentionMenu = ({
 		}
 
 		// Determine horizontal alignment
-		// Prefer left-aligned (menu starts at caret), but flip to right-aligned if:
-		// - Menu would overflow on the right
-		// - There's enough space on the left to fit the menu
-		if (rect.width > spaceRight && spaceLeft >= rect.width) {
-			setAlignRight(true);
+		// Priority: left -> right -> fullWidth (centered in container)
+		if (rect.width <= spaceRight) {
+			// Fits on the right side (left-aligned)
+			setHorizontalAlignment('left');
+		} else if (spaceLeft >= rect.width) {
+			// Doesn't fit right, but fits on the left (right-aligned)
+			setHorizontalAlignment('right');
+		} else if (containerRect) {
+			// Doesn't fit either side, use full width of container
+			setHorizontalAlignment('fullWidth');
 		} else {
-			setAlignRight(false);
+			// No container bounds, fall back to left alignment
+			setHorizontalAlignment('left');
 		}
-	}, [isOpen, caretRect, preferredPosition, options]);
+	}, [isOpen, caretRect, preferredPosition, options, containerRect]);
 
 	// Scroll selected item into view synchronously to avoid visual jank
 	// useLayoutEffect ensures scroll happens before paint, so selection and scroll appear simultaneous
@@ -370,10 +390,25 @@ const MentionMenu = ({
 		: caretRect.top - menuHeight - MENU_SPACING;
 
 	// Calculate final left position based on horizontal alignment
-	// When alignRight is true, position menu so its right edge is at the caret position
-	const left = alignRight
-		? caretRect.left - menuWidth
-		: caretRect.left;
+	const left = (() => {
+		switch (horizontalAlignment) {
+			case 'right':
+				// Position menu so its right edge is at the caret position
+				return caretRect.left - menuWidth;
+			case 'fullWidth':
+				// Position at container's left edge
+				return containerRect?.left ?? caretRect.left;
+			case 'left':
+			default:
+				// Position menu starting at caret
+				return caretRect.left;
+		}
+	})();
+
+	// Calculate width for fullWidth mode
+	const menuWidthStyle = horizontalAlignment === 'fullWidth' && containerRect
+		? containerRect.width
+		: undefined;
 
 	// Render a single menu item
 	const renderItem = (option: MentionOption, index: number) => {
@@ -492,11 +527,12 @@ const MentionMenu = ({
 	const menuContent = (
 		<div
 			ref={menuRef}
-			className={`mention-menu${isKeyboardNavigating ? ' keyboard-navigating' : ''}`}
+			className={`mention-menu${isKeyboardNavigating ? ' keyboard-navigating' : ''}${horizontalAlignment === 'fullWidth' ? ' mention-menu-full-width' : ''}`}
 			style={{
 				position: "fixed",
 				top: Math.max(MENU_SPACING, top), // Ensure it doesn't go above viewport
 				left: Math.max(MENU_SPACING, left), // Ensure it doesn't go past left edge of viewport
+				...(menuWidthStyle && { width: menuWidthStyle }),
 			}}
 			onScroll={handleScroll}
 		>
