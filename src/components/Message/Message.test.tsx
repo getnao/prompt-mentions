@@ -606,9 +606,9 @@ describe("Message", () => {
 			// App.tsx should have an icon
 			const appPill = container.querySelector('[data-mention="App.tsx"]');
 			expect(appPill?.querySelector(".mention-pill-icon")).toBeInTheDocument();
-			// bug doesn't have a file extension, so no icon
+			// bug doesn't have a file extension, so it gets the default file icon
 			const bugPill = container.querySelector('[data-mention="bug"]');
-			expect(bugPill?.querySelector(".mention-pill-icon")).not.toBeInTheDocument();
+			expect(bugPill?.querySelector(".mention-pill-icon")).toBeInTheDocument();
 		});
 	});
 });
