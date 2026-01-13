@@ -34,23 +34,23 @@ pnpm add prompt-mentions
 ## Quick Start
 
 ```tsx
-import { Prompt } from 'prompt-mentions';
-import 'prompt-mentions/style.css';
+import { Prompt } from "prompt-mentions";
+import "prompt-mentions/style.css";
 
 const options = [
-  { id: 'alice', label: 'Alice Johnson' },
-  { id: 'bob', label: 'Bob Smith' },
-  { id: 'main-ts', label: 'main.ts' },
+  { id: "alice", label: "Alice Johnson" },
+  { id: "bob", label: "Bob Smith" },
+  { id: "main-ts", label: "main.ts" },
 ];
 
 function App() {
   return (
     <Prompt
       placeholder="Type @ to mention..."
-      mentionConfigs={[{ trigger: '@', options }]}
+      mentionConfigs={[{ trigger: "@", options }]}
       onChange={(value, mentions) => {
-        console.log('Value:', value);
-        console.log('Mentions:', mentions);
+        console.log("Value:", value);
+        console.log("Mentions:", mentions);
       }}
     />
   );
@@ -64,34 +64,34 @@ function App() {
 The main input component with mention support.
 
 ```tsx
-import { Prompt } from 'prompt-mentions';
+import { Prompt } from "prompt-mentions";
 ```
 
 #### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `initialValue` | `string` | `""` | Initial text content with optional mentions in `@[id]` format |
-| `placeholder` | `string` | `""` | Placeholder text when input is empty |
-| `mentionConfigs` | `MentionConfig[]` | `[{ trigger: '@', options: [] }]` | Array of mention trigger configurations |
-| `theme` | `PresetThemeName \| PromptTheme` | — | Theme preset name or custom theme object |
-| `className` | `string` | `""` | Additional CSS class name |
-| `style` | `CSSProperties` | — | Inline styles |
-| `extensionIcons` | `boolean` | `false` | Auto-add file icons based on extension |
-| `onChange` | `(value: string, mentions: SelectedMention[]) => void` | — | Called on every text change |
-| `onEnter` | `(value: string, mentions: SelectedMention[]) => void` | — | Called when Enter is pressed |
-| `onMentionAdded` | `(mention: SelectedMention) => void` | — | Called when a mention is selected |
-| `onMentionDeleted` | `(mention: SelectedMention) => void` | — | Called when a mention is removed |
-| `onMentionClick` | `(mention: SelectedMention) => void` | — | Called when a mention pill is clicked |
+| Prop               | Type                                                   | Default                           | Description                                                   |
+| ------------------ | ------------------------------------------------------ | --------------------------------- | ------------------------------------------------------------- |
+| `initialValue`     | `string`                                               | `""`                              | Initial text content with optional mentions in `@[id]` format |
+| `placeholder`      | `string`                                               | `""`                              | Placeholder text when input is empty                          |
+| `mentionConfigs`   | `MentionConfig[]`                                      | `[{ trigger: '@', options: [] }]` | Array of mention trigger configurations                       |
+| `theme`            | `PresetThemeName \| PromptTheme`                       | —                                 | Theme preset name or custom theme object                      |
+| `className`        | `string`                                               | `""`                              | Additional CSS class name                                     |
+| `style`            | `CSSProperties`                                        | —                                 | Inline styles                                                 |
+| `extensionIcons`   | `boolean`                                              | `false`                           | Auto-add file icons based on extension                        |
+| `onChange`         | `(value: string, mentions: SelectedMention[]) => void` | —                                 | Called on every text change                                   |
+| `onEnter`          | `(value: string, mentions: SelectedMention[]) => void` | —                                 | Called when Enter is pressed                                  |
+| `onMentionAdded`   | `(mention: SelectedMention) => void`                   | —                                 | Called when a mention is selected                             |
+| `onMentionDeleted` | `(mention: SelectedMention) => void`                   | —                                 | Called when a mention is removed                              |
+| `onMentionClick`   | `(mention: SelectedMention) => void`                   | —                                 | Called when a mention pill is clicked                         |
 
 #### MentionConfig
 
 ```typescript
 interface MentionConfig {
-  trigger: string;           // Character that triggers the menu (e.g., '@', '#', '/')
-  options: MentionOption[];  // Array of mention options
-  menuPosition?: 'above' | 'below';  // Menu position relative to cursor
-  showTrigger?: boolean;     // Show trigger character in pill (default: false)
+  trigger: string; // Character that triggers the menu (e.g., '@', '#', '/')
+  options: MentionOption[]; // Array of mention options
+  menuPosition?: "above" | "below"; // Menu position relative to cursor
+  showTrigger?: boolean; // Show trigger character in pill (default: false)
 }
 ```
 
@@ -99,13 +99,13 @@ interface MentionConfig {
 
 ```typescript
 interface MentionOption {
-  id: string;                // Unique identifier
-  label: string;             // Display text
-  icon?: ReactNode;          // Optional icon component
-  type?: 'item' | 'divider' | 'title';  // Item type
-  children?: MentionOption[];  // Nested submenu items
-  labelRight?: string;       // Secondary label (e.g., file path)
-  indent?: number;           // Visual indent level
+  id: string; // Unique identifier
+  label: string; // Display text
+  icon?: ReactNode; // Optional icon component
+  type?: "item" | "divider" | "title"; // Item type
+  children?: MentionOption[]; // Nested submenu items
+  labelRight?: string; // Secondary label (e.g., file path)
+  indent?: number; // Visual indent level
 }
 ```
 
@@ -114,26 +114,26 @@ interface MentionOption {
 Display sent messages with formatted mention pills.
 
 ```tsx
-import { Message } from 'prompt-mentions';
+import { Message } from "prompt-mentions";
 
 <Message
   value="Hello @[alice]! Please review @[main-ts]"
-  mentionConfigs={[{ trigger: '@', options }]}
-  onMentionClick={(mention) => console.log('Clicked:', mention)}
-/>
+  mentionConfigs={[{ trigger: "@", options }]}
+  onMentionClick={(mention) => console.log("Clicked:", mention)}
+/>;
 ```
 
 #### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `value` | `string` | — | Message text with mentions in `trigger[id]` format |
-| `mentionConfigs` | `MessageMentionConfig[]` | `[{ trigger: '@' }]` | Mention configurations for label/icon lookup |
-| `theme` | `PresetThemeName \| PromptTheme` | — | Theme preset or custom theme |
-| `className` | `string` | `""` | Additional CSS class name |
-| `style` | `CSSProperties` | — | Inline styles |
-| `extensionIcons` | `boolean` | `false` | Auto-add file icons based on extension |
-| `onMentionClick` | `(mention) => void` | — | Called when a mention pill is clicked |
+| Prop             | Type                             | Default              | Description                                        |
+| ---------------- | -------------------------------- | -------------------- | -------------------------------------------------- |
+| `value`          | `string`                         | —                    | Message text with mentions in `trigger[id]` format |
+| `mentionConfigs` | `MessageMentionConfig[]`         | `[{ trigger: '@' }]` | Mention configurations for label/icon lookup       |
+| `theme`          | `PresetThemeName \| PromptTheme` | —                    | Theme preset or custom theme                       |
+| `className`      | `string`                         | `""`                 | Additional CSS class name                          |
+| `style`          | `CSSProperties`                  | —                    | Inline styles                                      |
+| `extensionIcons` | `boolean`                        | `false`              | Auto-add file icons based on extension             |
+| `onMentionClick` | `(mention) => void`              | —                    | Called when a mention pill is clicked              |
 
 ## Theming
 
@@ -152,29 +152,29 @@ Pass a `PromptTheme` object for full control:
 
 ```tsx
 const customTheme: PromptTheme = {
-  backgroundColor: '#1a1625',
-  color: '#e0d4f7',
-  placeholderColor: '#6b5b8c',
-  fontSize: '14px',
-  borderRadius: '12px',
-  borderColor: '#2d2640',
-  focusBorderColor: '#9c6ade',
-  
+  backgroundColor: "#1a1625",
+  color: "#e0d4f7",
+  placeholderColor: "#6b5b8c",
+  fontSize: "14px",
+  borderRadius: "12px",
+  borderColor: "#2d2640",
+  focusBorderColor: "#9c6ade",
+
   menu: {
-    backgroundColor: '#1a1625',
-    borderColor: '#2d2640',
-    color: '#c4b5dc',
-    itemHoverColor: '#2d2640',
+    backgroundColor: "#1a1625",
+    borderColor: "#2d2640",
+    color: "#c4b5dc",
+    itemHoverColor: "#2d2640",
   },
-  
+
   pill: {
-    backgroundColor: 'linear-gradient(135deg, #7c3aed, #c026d3)',
-    borderRadius: '8px',
-    color: 'white',
+    backgroundColor: "linear-gradient(135deg, #7c3aed, #c026d3)",
+    borderRadius: "8px",
+    color: "white",
   },
 };
 
-<Prompt theme={customTheme} />
+<Prompt theme={customTheme} />;
 ```
 
 ### Partial Overrides
@@ -184,9 +184,9 @@ Override only specific properties:
 ```tsx
 <Prompt
   theme={{
-    focusBorderColor: '#f43f5e',
+    focusBorderColor: "#f43f5e",
     pill: {
-      backgroundColor: '#16a34a',
+      backgroundColor: "#16a34a",
     },
   }}
 />
@@ -204,11 +204,15 @@ All styling is controlled via CSS variables. Override them in your CSS:
   --prompt-border-radius: 0.375rem;
   --prompt-border-color: #d1d5db;
   --prompt-focus-border-color: #6366f1;
-  
-  --prompt-mention-pill-background-color: linear-gradient(135deg, #6366f1, #8b5cf6);
+
+  --prompt-mention-pill-background-color: linear-gradient(
+    135deg,
+    #6366f1,
+    #8b5cf6
+  );
   --prompt-mention-pill-color: white;
   --prompt-mention-pill-border-radius: 9999px;
-  
+
   --prompt-mention-menu-background-color: white;
   --prompt-mention-menu-border-color: #e5e7eb;
   --prompt-mention-menu-item-hover-color: #f3f4f6;
@@ -225,9 +229,9 @@ Configure different triggers for different types of mentions:
 <Prompt
   placeholder="Type @, #, or / ..."
   mentionConfigs={[
-    { trigger: '@', options: peopleOptions },
-    { trigger: '#', options: tagOptions },
-    { trigger: '/', options: commandOptions, menuPosition: 'above' },
+    { trigger: "@", options: peopleOptions },
+    { trigger: "#", options: tagOptions },
+    { trigger: "/", options: commandOptions, menuPosition: "above" },
   ]}
 />
 ```
@@ -239,27 +243,28 @@ Create hierarchical option structures:
 ```tsx
 const options = [
   {
-    id: 'team',
-    label: 'Team Members',
+    id: "team",
+    label: "Team Members",
     icon: <UsersIcon />,
     children: [
-      { id: 'alice', label: 'Alice Johnson' },
-      { id: 'bob', label: 'Bob Smith' },
+      { id: "alice", label: "Alice Johnson" },
+      { id: "bob", label: "Bob Smith" },
     ],
   },
   {
-    id: 'projects',
-    label: 'Projects',
+    id: "projects",
+    label: "Projects",
     icon: <FolderIcon />,
     children: [
-      { id: 'alpha', label: 'Project Alpha' },
-      { id: 'beta', label: 'Project Beta' },
+      { id: "alpha", label: "Project Alpha" },
+      { id: "beta", label: "Project Beta" },
     ],
   },
 ];
 ```
 
 Navigate with:
+
 - **Tab** or **→** — Enter submenu
 - **Escape** or **←** — Exit submenu
 
@@ -269,10 +274,10 @@ Add icons and secondary labels to options:
 
 ```tsx
 const fileOptions = [
-  { 
-    id: 'prompt-tsx', 
-    label: 'Prompt.tsx', 
-    labelRight: 'src/components/',
+  {
+    id: "prompt-tsx",
+    label: "Prompt.tsx",
+    labelRight: "src/components/",
     icon: <TypeScriptIcon />,
     indent: 1,
   },
@@ -286,7 +291,7 @@ Automatically add file type icons based on file extensions:
 ```tsx
 <Prompt
   extensionIcons={true}
-  mentionConfigs={[{ trigger: '@', options: fileOptions }]}
+  mentionConfigs={[{ trigger: "@", options: fileOptions }]}
 />
 ```
 
@@ -298,12 +303,12 @@ Organize options with visual separators:
 
 ```tsx
 const options = [
-  { id: 'title-people', label: 'People', type: 'title' },
-  { id: 'alice', label: 'Alice' },
-  { id: 'bob', label: 'Bob' },
-  { id: 'divider-1', label: '', type: 'divider' },
-  { id: 'title-files', label: 'Files', type: 'title' },
-  { id: 'readme', label: 'README.md' },
+  { id: "title-people", label: "People", type: "title" },
+  { id: "alice", label: "Alice" },
+  { id: "bob", label: "Bob" },
+  { id: "divider-1", label: "", type: "divider" },
+  { id: "title-files", label: "Files", type: "title" },
+  { id: "readme", label: "README.md" },
 ];
 ```
 
@@ -312,8 +317,8 @@ const options = [
 Use the imperative handle to control the prompt externally:
 
 ```tsx
-import { useRef } from 'react';
-import { Prompt, PromptHandle, MentionOption } from 'prompt-mentions';
+import { useRef } from "react";
+import { Prompt, PromptHandle, MentionOption } from "prompt-mentions";
 
 function MyComponent() {
   const promptRef = useRef<PromptHandle>(null);
@@ -321,12 +326,21 @@ function MyComponent() {
   const handleAddMention = (option: MentionOption) => {
     // Append mention with default trigger (@)
     promptRef.current?.appendMention(option);
-    
+
     // Or with a specific trigger
-    promptRef.current?.appendMention(option, '#');
-    
+    promptRef.current?.appendMention(option, "#");
+
     // Focus the input
     promptRef.current?.focus();
+  };
+
+  const handleInsertText = () => {
+    // Insert text at current cursor position (or at end if not focused)
+    // Behaves like typing - triggers mention menu when a trigger character is inserted
+    promptRef.current?.insertText("Hello ");
+
+    // Insert a trigger to open the mention menu
+    promptRef.current?.insertText("@");
   };
 
   return (
@@ -334,17 +348,26 @@ function MyComponent() {
       <Prompt
         ref={promptRef}
         mentionConfigs={[
-          { trigger: '@', options: userOptions },
-          { trigger: '#', options: tagOptions },
+          { trigger: "@", options: userOptions },
+          { trigger: "#", options: tagOptions },
         ]}
       />
-      <button onClick={() => handleAddMention({ id: 'alice', label: 'Alice' })}>
+      <button onClick={() => handleAddMention({ id: "alice", label: "Alice" })}>
         Add @Alice
       </button>
+      <button onClick={handleInsertText}>Insert Text</button>
     </>
   );
 }
 ```
+
+#### PromptHandle Methods
+
+| Method          | Signature                                           | Description                                                                                                     |
+| --------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `appendMention` | `(option: MentionOption, trigger?: string) => void` | Appends a mention pill to the end of the input                                                                  |
+| `focus`         | `() => void`                                        | Focuses the prompt input                                                                                        |
+| `insertText`    | `(text: string) => void`                            | Inserts text at cursor position. Behaves like typing—triggers mention menu when a trigger character is inserted |
 
 ### Initial Value with Mentions
 
@@ -353,7 +376,7 @@ Pre-populate the input with existing mentions:
 ```tsx
 <Prompt
   initialValue="Hello @[alice]! Please check @[main-ts]"
-  mentionConfigs={[{ trigger: '@', options }]}
+  mentionConfigs={[{ trigger: "@", options }]}
 />
 ```
 
@@ -363,23 +386,19 @@ The format is `trigger[id]` where `id` matches an option's `id` field.
 
 ```typescript
 // Components
-export { Prompt, Message } from 'prompt-mentions';
+export { Prompt, Message } from "prompt-mentions";
 
 // Types
-export type { 
-  MentionOption, 
+export type {
+  MentionOption,
   MentionItemType,
   SelectedMention,
   PromptTheme,
   PresetThemeName,
-} from 'prompt-mentions';
+} from "prompt-mentions";
 
 // Theme utilities
-export { 
-  themeToStyles, 
-  presetThemes, 
-  defaultTheme,
-} from 'prompt-mentions';
+export { themeToStyles, presetThemes, defaultTheme } from "prompt-mentions";
 
 // Extension icon utilities
 export {
@@ -388,18 +407,18 @@ export {
   filenameIconMap,
   DefaultFileIcon,
   DefaultFolderIcon,
-} from 'prompt-mentions';
+} from "prompt-mentions";
 ```
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` | Navigate menu options |
-| `Enter` | Select highlighted option |
-| `Tab` / `→` | Enter submenu (if available) |
-| `Escape` / `←` | Exit submenu or close menu |
-| `Backspace` | Delete mention (when cursor is adjacent) |
+| Key            | Action                                   |
+| -------------- | ---------------------------------------- |
+| `↑` / `↓`      | Navigate menu options                    |
+| `Enter`        | Select highlighted option                |
+| `Tab` / `→`    | Enter submenu (if available)             |
+| `Escape` / `←` | Exit submenu or close menu               |
+| `Backspace`    | Delete mention (when cursor is adjacent) |
 
 ## Browser Support
 
@@ -441,4 +460,3 @@ MIT © (https://github.com/getnao/prompt-mentions/blob/main/LICENSE)
 ---
 
 Made with ❤️ by [nao Labs](https://getnao.io)
-
