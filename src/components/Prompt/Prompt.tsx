@@ -43,6 +43,12 @@ export interface PromptProps {
 	 * @default true
 	 */
 	virtualizeMenu?: boolean;
+	/**
+	 * When true, automatically clears the input after onEnter fires.
+	 * Useful for chat/command inputs where the content should reset after submission.
+	 * @default false
+	 */
+	clearOnEnter?: boolean;
 }
 
 /**
@@ -66,6 +72,12 @@ export interface PromptHandle {
 	 * @param text - The text to insert
 	 */
 	insertText: (text: string) => void;
+	/** Returns the current serialized value of the input */
+	getValue: () => string;
+	/** Returns the current list of mentions in the input */
+	getMentions: () => SelectedMention[];
+	/** Clears all content from the input */
+	clear: () => void;
 }
 
 function resolveTheme(theme: PromptProps['theme']): {
@@ -166,6 +178,7 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		style,
 		extensionIcons = false,
 		virtualizeMenu = true,
+		clearOnEnter = false,
 	} = props;
 
 	// Process configs to add extension icons if enabled
@@ -202,15 +215,23 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		return () => resizeObserver.disconnect();
 	}, []);
 
-	const { ref, isEmpty, handlers, mentions, appendMention, insertText } = useContentEditable({
+	const contentEditable = useContentEditable({
 		initialValue,
 		mentionConfigs: processedConfigs,
 		onChange,
-		onEnter,
+		onEnter: onEnter
+			? (value, currentMentions) => {
+				onEnter(value, currentMentions);
+				if (clearOnEnter) {
+					contentEditable.clear();
+				}
+			}
+			: undefined,
 		onMentionAdded,
 		onMentionDeleted,
 		onMentionClick,
 	});
+	const { ref, isEmpty, handlers, mentions, appendMention, insertText, getValue, getMentions, clear } = contentEditable;
 
 	// Expose imperative handle for external control
 	useImperativeHandle(forwardedRef, () => ({
@@ -223,7 +244,10 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		insertText: (text: string) => {
 			insertText(text);
 		},
-	}), [appendMention, insertText, ref]);
+		getValue,
+		getMentions,
+		clear,
+	}), [appendMention, insertText, ref, getValue, getMentions, clear]);
 
 	// Get the menu position for the currently active trigger
 	const activeConfig = processedConfigs.find(c => c.trigger === mentions.activeTrigger);

@@ -73,6 +73,20 @@ export function useContentEditable({
 		return el ? MentionDOM.extractValueMulti(el, triggers) : "";
 	}, [getElement, triggers]);
 
+	const getMentions = useCallback((): SelectedMention[] => {
+		return [...currentMentionsRef.current];
+	}, []);
+
+	const clear = useCallback(() => {
+		const el = getElement();
+		if (!el) return;
+		el.innerHTML = "";
+		currentMentionsRef.current = [];
+		setIsEmpty(true);
+		history.push("", 0);
+		onChangeRef.current?.("", []);
+	}, [getElement, history]);
+
 	const updateState = useCallback(
 		(value: string) => {
 			const el = ref.current;
@@ -589,5 +603,8 @@ export function useContentEditable({
 		},
 		appendMention,
 		insertText,
+		getValue,
+		getMentions,
+		clear,
 	};
 }

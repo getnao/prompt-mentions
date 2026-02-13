@@ -1730,3 +1730,265 @@ Disabling virtualization for very large lists (1000+) may cause performance issu
 		},
 	},
 };
+
+// -- clearOnEnter & Imperative API stories --
+
+const chatMentionOptions: MentionOption[] = [
+	{ id: 'data-summary', label: 'Data Summary', icon: <StarIcon /> },
+	{ id: 'sql-query', label: 'SQL Query', icon: <CodeIcon /> },
+	{ id: 'chart-builder', label: 'Chart Builder', icon: <FileIcon /> },
+];
+
+const ClearOnEnterShowcase = () => {
+	const [messages, setMessages] = useState<{ text: string; mentions: SelectedMention[] }[]>([]);
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="text-sm text-gray-600 mb-2">
+				<p className="font-medium mb-1">Chat-style input with <code className="bg-gray-100 px-1 rounded">clearOnEnter</code></p>
+				<p>Type a message and press Enter — the input clears automatically. Try <code className="bg-gray-100 px-1 rounded">/</code> to add a mention.</p>
+			</div>
+			<Prompt
+				placeholder="Type a message and press Enter..."
+				mentionConfigs={[
+					{ trigger: '/', options: chatMentionOptions, menuPosition: 'above' },
+				]}
+				onEnter={(value, mentions) => {
+					if (!value.trim()) return;
+					setMessages(prev => [...prev, { text: value, mentions }]);
+				}}
+				clearOnEnter
+			/>
+			{messages.length > 0 && (
+				<div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+					<h4 className="text-xs font-semibold text-gray-700 mb-2">Sent messages:</h4>
+					<div className="space-y-1.5 max-h-48 overflow-auto">
+						{messages.map((msg, i) => (
+							<div key={i} className="text-xs font-mono bg-white p-2 rounded border border-gray-100">
+								<div className="text-gray-800">{msg.text}</div>
+								{msg.mentions.length > 0 && (
+									<div className="text-gray-500 mt-1">mentions: {JSON.stringify(msg.mentions)}</div>
+								)}
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+};
+
+export const ClearOnEnter: Story = {
+	name: 'Clear on Enter (Chat Pattern)',
+	render: () => <ClearOnEnterShowcase />,
+	parameters: {
+		docs: {
+			description: {
+				story: `The \`clearOnEnter\` prop automatically clears the input after \`onEnter\` fires — no ref needed.
+
+\`\`\`tsx
+<Prompt
+  onEnter={(value, mentions) => sendMessage(value, mentions)}
+  clearOnEnter
+/>
+\`\`\`
+
+This eliminates the need for imperative \`clear()\` calls in chat-style UIs.`,
+			},
+		},
+	},
+};
+
+const ImperativeAPIShowcase = () => {
+	const promptRef = useRef<PromptHandle>(null);
+	const [snapshot, setSnapshot] = useState<{ value: string; mentions: SelectedMention[] } | null>(null);
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="text-sm text-gray-600 mb-2">
+				<p className="font-medium mb-1">Imperative API: <code className="bg-gray-100 px-1 rounded">getValue()</code>, <code className="bg-gray-100 px-1 rounded">getMentions()</code>, <code className="bg-gray-100 px-1 rounded">clear()</code></p>
+				<p>Type something (try <code className="bg-gray-100 px-1 rounded">@</code> for mentions), then use the buttons below.</p>
+			</div>
+			<Prompt
+				ref={promptRef}
+				placeholder="Type something with @mentions..."
+				mentionConfigs={[
+					{ trigger: '@', options: defaultOptions },
+				]}
+			/>
+			<div className="flex gap-2">
+				<button
+					onClick={() => {
+						const value = promptRef.current?.getValue() ?? '';
+						const mentions = promptRef.current?.getMentions() ?? [];
+						setSnapshot({ value, mentions });
+					}}
+					className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+				>
+					Read state
+				</button>
+				<button
+					onClick={() => {
+						promptRef.current?.clear();
+						setSnapshot(null);
+					}}
+					className="px-3 py-1.5 text-xs bg-gray-500 hover:bg-gray-600 text-white rounded-md transition-colors"
+				>
+					Clear
+				</button>
+				<button
+					onClick={() => promptRef.current?.focus()}
+					className="px-3 py-1.5 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
+				>
+					Focus
+				</button>
+			</div>
+			{snapshot && (
+				<div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+					<h4 className="text-xs font-semibold text-blue-700 mb-2">Current state:</h4>
+					<div className="text-xs font-mono bg-white p-2 rounded border border-blue-100 space-y-1">
+						<div><span className="text-gray-500">getValue():</span> <span className="text-blue-700">"{snapshot.value}"</span></div>
+						<div><span className="text-gray-500">getMentions():</span> <span className="text-blue-700">{JSON.stringify(snapshot.mentions, null, 2)}</span></div>
+					</div>
+				</div>
+			)}
+		</div>
+	);
+};
+
+export const ImperativeAPI: Story = {
+	name: 'Imperative API (getValue, getMentions, clear)',
+	render: () => <ImperativeAPIShowcase />,
+	parameters: {
+		docs: {
+			description: {
+				story: `The \`PromptHandle\` ref now exposes \`getValue()\`, \`getMentions()\`, and \`clear()\` for reading state and resetting the input imperatively.
+
+\`\`\`typescript
+interface PromptHandle {
+  appendMention: (option: MentionOption, trigger?: string) => void;
+  focus: () => void;
+  insertText: (text: string) => void;
+  getValue: () => string;
+  getMentions: () => SelectedMention[];
+  clear: () => void;
+}
+\`\`\`
+
+### Form submission example
+
+\`\`\`tsx
+const promptRef = useRef<PromptHandle>(null);
+
+const handleSubmit = () => {
+  const value = promptRef.current?.getValue() ?? '';
+  const mentions = promptRef.current?.getMentions() ?? [];
+  sendMessage(value, mentions);
+  promptRef.current?.clear();
+};
+
+<Prompt ref={promptRef} />
+<button onClick={handleSubmit}>Send</button>
+\`\`\`
+
+This is useful when you need to read the input state from a button click (not just \`onEnter\`), or when you want to clear the input conditionally.`,
+			},
+		},
+	},
+};
+
+const FormSubmitShowcase = () => {
+	const promptRef = useRef<PromptHandle>(null);
+	const [hasInput, setHasInput] = useState(false);
+	const [messages, setMessages] = useState<{ text: string; mentions: SelectedMention[] }[]>([]);
+
+	const handleSubmit = () => {
+		const value = promptRef.current?.getValue() ?? '';
+		const mentions = promptRef.current?.getMentions() ?? [];
+		if (!value.trim()) return;
+		setMessages(prev => [...prev, { text: value, mentions }]);
+		promptRef.current?.clear();
+		promptRef.current?.focus();
+	};
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="text-sm text-gray-600 mb-2">
+				<p className="font-medium mb-1">Form with submit button + Enter key</p>
+				<p>Both the button and Enter key submit the message. Uses <code className="bg-gray-100 px-1 rounded">clearOnEnter</code> for Enter, and <code className="bg-gray-100 px-1 rounded">clear()</code> for the button.</p>
+			</div>
+			<div className="flex gap-2 items-end">
+				<div className="flex-1">
+					<Prompt
+						ref={promptRef}
+						placeholder="Type a message..."
+						mentionConfigs={[
+							{ trigger: '@', options: defaultOptions },
+							{ trigger: '/', options: chatMentionOptions, menuPosition: 'above' },
+						]}
+						onChange={(value) => setHasInput(!!value.trim())}
+						onEnter={(value, mentions) => {
+							if (!value.trim()) return;
+							setMessages(prev => [...prev, { text: value, mentions }]);
+						}}
+						clearOnEnter
+					/>
+				</div>
+				<button
+					onClick={handleSubmit}
+					disabled={!hasInput}
+					className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors shrink-0"
+				>
+					Send
+				</button>
+			</div>
+			{messages.length > 0 && (
+				<div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+					<h4 className="text-xs font-semibold text-gray-700 mb-2">Messages:</h4>
+					<div className="space-y-1.5 max-h-48 overflow-auto">
+						{messages.map((msg, i) => (
+							<div key={i} className="text-xs font-mono bg-white p-2 rounded border border-gray-100">
+								<div className="text-gray-800">{msg.text}</div>
+								{msg.mentions.length > 0 && (
+									<div className="text-gray-500 mt-1">mentions: {JSON.stringify(msg.mentions)}</div>
+								)}
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+};
+
+export const FormSubmitWithButton: Story = {
+	name: 'Form Submit with Button',
+	render: () => <FormSubmitShowcase />,
+	parameters: {
+		docs: {
+			description: {
+				story: `A realistic form pattern combining \`clearOnEnter\` with imperative \`getValue()\`/\`getMentions()\`/\`clear()\` for the submit button.
+
+\`\`\`tsx
+const promptRef = useRef<PromptHandle>(null);
+const [hasInput, setHasInput] = useState(false);
+
+const handleButtonSubmit = () => {
+  const value = promptRef.current?.getValue() ?? '';
+  const mentions = promptRef.current?.getMentions() ?? [];
+  sendMessage(value, mentions);
+  promptRef.current?.clear();
+};
+
+<Prompt
+  ref={promptRef}
+  onChange={(value) => setHasInput(!!value.trim())}
+  onEnter={(value, mentions) => sendMessage(value, mentions)}
+  clearOnEnter
+/>
+<button onClick={handleButtonSubmit} disabled={!hasInput}>Send</button>
+\`\`\``,
+			},
+		},
+	},
+};

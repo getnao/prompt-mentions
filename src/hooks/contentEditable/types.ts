@@ -77,6 +77,12 @@ export interface UseContentEditableReturn {
 	 * @param text - The text to insert
 	 */
 	insertText: (text: string) => void;
+	/** Returns the current serialized value of the input */
+	getValue: () => string;
+	/** Returns the current list of mentions in the input */
+	getMentions: () => SelectedMention[];
+	/** Clears all content from the input */
+	clear: () => void;
 }
 
 export interface CaretCoordinates {
