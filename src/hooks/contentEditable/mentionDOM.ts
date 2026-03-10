@@ -138,6 +138,7 @@ export const MentionDOM = {
 		const iconHTML = icon
 			? `<span class="mention-pill-icon" data-mention-delete="true"><span class="mention-pill-icon-original">${iconToHTML(icon)}</span><span class="mention-pill-icon-delete">${deleteIconSVG}</span></span>`
 			: "";
+		const pillClassName = icon ? "mention-pill mention-pill-with-icon" : "mention-pill";
 		// Store icon HTML in data attribute for later reconstruction
 		const iconAttr = icon ? ` data-icon="${encodeURIComponent(iconToHTML(icon))}"` : "";
 		// Display text - optionally include trigger
@@ -145,7 +146,7 @@ export const MentionDOM = {
 		// Store showTrigger in data attribute for cursor position calculations
 		const showTriggerAttr = showTrigger ? "" : ` data-hide-trigger="true"`;
 		// Store id, label, and trigger - data-mention stores the label for display, data-mention-id stores the id for serialization
-		return `<span contenteditable="false" data-mention="${label}" data-mention-id="${id}" data-mention-trigger="${trigger}"${iconAttr}${showTriggerAttr} class="mention-pill">${iconHTML}${displayText}</span>`;
+		return `<span contenteditable="false" data-mention="${label}" data-mention-id="${id}" data-mention-trigger="${trigger}"${iconAttr}${showTriggerAttr} class="${pillClassName}">${iconHTML}${displayText}</span>`;
 	},
 
 	isMentionElement(node: Node): node is HTMLElement {

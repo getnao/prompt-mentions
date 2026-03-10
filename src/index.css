@@ -109,8 +109,7 @@
 
 /* Mention Pills */
 .mention-pill {
-	display: inline-flex;
-	align-items: center;
+	display: inline-block;
 	padding: var(--prompt-mention-pill-padding);
 	margin: 0 0.125rem;
 	background: var(--prompt-mention-pill-background-color);
@@ -118,11 +117,16 @@
 	border-radius: var(--prompt-mention-pill-border-radius);
 	cursor: default;
 	user-select: all;
-	vertical-align: middle;
 	line-height: var(--prompt-mention-pill-line-height);
+	position: relative;
+	vertical-align: baseline;
 	outline: 2px solid transparent;
 	outline-offset: 1px;
 	transition: outline-color 0.1s ease;
+}
+
+.mention-pill-with-icon {
+	padding-left: calc(var(--prompt-font-size) + 0.45rem);
 }
 
 .mention-pill:hover {
@@ -317,21 +321,25 @@
 
 /* Mention Pill Icon */
 .mention-pill-icon {
-	position: relative;
+	position: absolute;
+	top: 50%;
+	left: 0.2rem;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	width: var(--prompt-font-size);
 	height: var(--prompt-font-size);
-	margin-right: 0.25rem;
+	margin-right: 0;
 	flex-shrink: 0;
-	vertical-align: -0.1em;
+	line-height: 1;
+	transform: translateY(-50%);
 	cursor: pointer;
 }
 
 .mention-pill-icon svg {
-	width: var(--prompt-font-size);
-	height: var(--prompt-font-size);
+	display: block;
+	width: 100%;
+	height: 100%;
 }
 
 /* Original icon - hide on hover */

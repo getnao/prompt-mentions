@@ -93,6 +93,40 @@ export const SelectionUtils = {
 		};
 	},
 
+	setCaretRelativeToNode(sel: Selection, node: Node, position: "before" | "after"): void {
+		const range = document.createRange();
+		const sibling = position === "before" ? node.previousSibling : node.nextSibling;
+
+		if (sibling?.nodeType === Node.TEXT_NODE) {
+			const offset = position === "before"
+				? (sibling.textContent?.length ?? 0)
+				: 0;
+			range.setStart(sibling, offset);
+			range.collapse(true);
+			sel.removeAllRanges();
+			sel.addRange(range);
+			return;
+		}
+
+		const parent = node.parentNode;
+		if (!parent) return;
+
+		// Browsers can render caret positions poorly when collapsed directly on an
+		// element boundary next to a non-editable mention. Create a stable empty
+		// text anchor so the caret is always placed inside a real text node.
+		const anchor = document.createTextNode("");
+		if (position === "before") {
+			parent.insertBefore(anchor, node);
+		} else {
+			parent.insertBefore(anchor, node.nextSibling);
+		}
+
+		range.setStart(anchor, 0);
+		range.collapse(true);
+		sel.removeAllRanges();
+		sel.addRange(range);
+	},
+
 	setAfter(sel: Selection, node: Node, offset = 1): void {
 		const range = document.createRange();
 		range.setStart(node, offset);

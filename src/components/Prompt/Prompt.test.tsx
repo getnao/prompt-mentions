@@ -1102,6 +1102,50 @@ describe('Prompt', () => {
 				expect(getSelectionText()).toBe('John Doe');
 			});
 
+			it('anchors the cursor in the previous text node when moving left across a mention', () => {
+				const { container } = render(<Prompt initialValue="hello @[John Doe] world" mentionConfigs={defaultConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				const mentionPill = container.querySelector('[data-mention="John Doe"]')!;
+				const textBefore = mentionPill.previousSibling;
+
+				expect(textBefore?.nodeType).toBe(Node.TEXT_NODE);
+
+				const range = document.createRange();
+				range.setStartAfter(mentionPill);
+				range.collapse(true);
+
+				const selection = window.getSelection();
+				selection?.removeAllRanges();
+				selection?.addRange(range);
+
+				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft' });
+
+				expect(selection?.focusNode).toBe(textBefore);
+				expect(selection?.focusOffset).toBe(textBefore?.textContent?.length ?? 0);
+			});
+
+			it('creates a stable caret anchor between adjacent mentions when moving left', () => {
+				const { container } = render(<Prompt initialValue="@[John Doe]@[Jane Smith]" mentionConfigs={defaultConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+				const johnPill = container.querySelector('[data-mention="John Doe"]')!;
+				const janePill = container.querySelector('[data-mention="Jane Smith"]')!;
+
+				const range = document.createRange();
+				range.setStartAfter(janePill);
+				range.collapse(true);
+
+				const selection = window.getSelection();
+				selection?.removeAllRanges();
+				selection?.addRange(range);
+
+				fireEvent.keyDown(editableDiv, { key: 'ArrowLeft' });
+
+				expect(selection?.focusNode?.nodeType).toBe(Node.TEXT_NODE);
+				expect(selection?.focusOffset).toBe(0);
+				expect(selection?.focusNode?.previousSibling).toBe(johnPill);
+				expect(selection?.focusNode?.nextSibling).toBe(janePill);
+			});
+
 			it('moves cursor past entire mention with single Right arrow (no shift)', () => {
 				const { container } = render(<Prompt initialValue="@[John Doe] hello" mentionConfigs={defaultConfig} />);
 				const editableDiv = container.querySelector('[contenteditable="true"]')!;

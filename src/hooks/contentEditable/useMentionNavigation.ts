@@ -143,13 +143,12 @@ export function useMentionNavigation({
 					}
 				} else {
 					selectionDirectionRef.current = null;
-					if (isLeft) {
-						newRange.setStartBefore(adjacentMention);
-						newRange.collapse(true);
-					} else {
-						newRange.setStartAfter(adjacentMention);
-						newRange.collapse(true);
-					}
+					SelectionUtils.setCaretRelativeToNode(
+						sel,
+						adjacentMention,
+						isLeft ? "before" : "after"
+					);
+					return true;
 				}
 
 				sel.removeAllRanges();

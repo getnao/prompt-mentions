@@ -259,7 +259,7 @@ export function Message({
 					return (
 						<span
 							key={index}
-							className="mention-pill"
+							className={segment.icon ? "mention-pill mention-pill-with-icon" : "mention-pill"}
 							data-mention={segment.label}
 							data-mention-id={segment.id}
 							data-mention-trigger={segment.trigger}
