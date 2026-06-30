@@ -30,6 +30,8 @@ export interface UseContentEditableOptions {
 	mentionConfigs?: MentionConfig[];
 	onChange?: ((value: string, mentions: SelectedMention[]) => void) | undefined;
 	onEnter?: ((value: string, mentions: SelectedMention[]) => void) | undefined;
+	/** When false, Enter inserts a newline instead of firing onEnter. Defaults to true. */
+	submitOnEnter?: boolean;
 	onMentionAdded?: ((mention: SelectedMention) => void) | undefined;
 	onMentionDeleted?: ((mention: SelectedMention) => void) | undefined;
 	/** Called when a mention pill is clicked */

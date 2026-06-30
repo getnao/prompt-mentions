@@ -49,6 +49,12 @@ export interface PromptProps {
 	 * @default false
 	 */
 	clearOnEnter?: boolean;
+	/**
+	 * When false, pressing Enter inserts a newline instead of firing onEnter.
+	 * Useful for multiline prompt inputs where Enter should not submit.
+	 * @default true
+	 */
+	submitOnEnter?: boolean;
 }
 
 /**
@@ -179,6 +185,7 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		extensionIcons = false,
 		virtualizeMenu = true,
 		clearOnEnter = false,
+		submitOnEnter = true,
 	} = props;
 
 	// Process configs to add extension icons if enabled
@@ -230,6 +237,7 @@ const Prompt = forwardRef<PromptHandle, PromptProps>((props, forwardedRef) => {
 		onMentionAdded,
 		onMentionDeleted,
 		onMentionClick,
+		submitOnEnter,
 	});
 	const { ref, isEmpty, handlers, mentions, appendMention, insertText, getValue, getMentions, clear } = contentEditable;
 
