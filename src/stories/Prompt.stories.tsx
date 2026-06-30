@@ -1992,3 +1992,91 @@ const handleButtonSubmit = () => {
 		},
 	},
 };
+
+// ========== submitOnEnter Stories ==========
+
+const MultilineSubmitShowcase = () => {
+	const promptRef = useRef<PromptHandle>(null);
+	const [messages, setMessages] = useState<{ text: string; mentions: SelectedMention[] }[]>([]);
+
+	const handleSubmit = () => {
+		const value = promptRef.current?.getValue() ?? '';
+		const mentions = promptRef.current?.getMentions() ?? [];
+		if (!value.trim()) return;
+		setMessages(prev => [...prev, { text: value, mentions }]);
+		promptRef.current?.clear();
+		promptRef.current?.focus();
+	};
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="text-sm text-gray-600 mb-2">
+				<p className="font-medium mb-1">Multiline prompt with <code className="bg-gray-100 px-1 rounded">submitOnEnter={'{false}'}</code></p>
+				<p>Press <kbd className="bg-gray-100 px-1 rounded border">Enter</kbd> to insert a newline instead of submitting. Use the <strong>Send</strong> button to submit.</p>
+			</div>
+			<div className="flex gap-2 items-end">
+				<div className="flex-1">
+					<Prompt
+						ref={promptRef}
+						placeholder="Write a multiline prompt... Enter adds a new line"
+						mentionConfigs={[{ trigger: '@', options: defaultOptions }]}
+						submitOnEnter={false}
+					/>
+				</div>
+				<button
+					onClick={handleSubmit}
+					className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shrink-0"
+				>
+					Send
+				</button>
+			</div>
+			{messages.length > 0 && (
+				<div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+					<h4 className="text-xs font-semibold text-gray-700 mb-2">Submitted messages:</h4>
+					<div className="space-y-1.5 max-h-48 overflow-auto">
+						{messages.map((msg, i) => (
+							<div key={i} className="text-xs font-mono bg-white p-2 rounded border border-gray-100">
+								<div className="text-gray-800 whitespace-pre-wrap">{msg.text}</div>
+								{msg.mentions.length > 0 && (
+									<div className="text-gray-500 mt-1">mentions: {JSON.stringify(msg.mentions)}</div>
+								)}
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	);
+};
+
+export const SubmitOnEnterDisabled: Story = {
+	name: 'Multiline Input (submitOnEnter: false)',
+	render: () => <MultilineSubmitShowcase />,
+	parameters: {
+		docs: {
+			description: {
+				story: `By default \`submitOnEnter\` is \`true\`, so pressing Enter fires \`onEnter\`. Set it to \`false\` to turn the prompt into a multiline input where Enter inserts a newline instead — handy when submission should happen via a button (or some other key combination).
+
+\`\`\`tsx
+const promptRef = useRef<PromptHandle>(null);
+
+const handleSubmit = () => {
+  const value = promptRef.current?.getValue() ?? '';
+  const mentions = promptRef.current?.getMentions() ?? [];
+  sendMessage(value, mentions);
+  promptRef.current?.clear();
+};
+
+<Prompt
+  ref={promptRef}
+  submitOnEnter={false}
+  mentionConfigs={[{ trigger: '@', options: [...] }]}
+/>
+<button onClick={handleSubmit}>Send</button>
+\`\`\`
+
+When \`submitOnEnter\` is \`false\`, \`onEnter\` is never called — read the value imperatively via \`getValue()\`/\`getMentions()\` instead.`,
+			},
+		},
+	},
+};

@@ -79,7 +79,8 @@ import { Prompt } from "prompt-mentions";
 | `style`            | `CSSProperties`                                        | —                                 | Inline styles                                                 |
 | `extensionIcons`   | `boolean`                                              | `false`                           | Auto-add file icons based on extension                        |
 | `onChange`         | `(value: string, mentions: SelectedMention[]) => void` | —                                 | Called on every text change                                   |
-| `onEnter`          | `(value: string, mentions: SelectedMention[]) => void` | —                                 | Called when Enter is pressed                                  |
+| `onEnter`          | `(value: string, mentions: SelectedMention[]) => void` | —                                 | Called when Enter is pressed (only when `submitOnEnter` is `true`) |
+| `submitOnEnter`    | `boolean`                                              | `true`                            | When `false`, Enter inserts a newline instead of firing `onEnter`. Useful for multiline prompt inputs. |
 | `onMentionAdded`   | `(mention: SelectedMention) => void`                   | —                                 | Called when a mention is selected                             |
 | `onMentionDeleted` | `(mention: SelectedMention) => void`                   | —                                 | Called when a mention is removed                              |
 | `onMentionClick`   | `(mention: SelectedMention) => void`                   | —                                 | Called when a mention pill is clicked                         |

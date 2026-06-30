@@ -188,6 +188,71 @@ describe('Prompt', () => {
 			const mentionPill = container.querySelector('[data-mention="John Doe"]');
 			expect(mentionPill).toBeInTheDocument();
 		});
+
+		describe('submitOnEnter={false}', () => {
+			it('does not call onEnter when pressing Enter', () => {
+				const handleEnter = vi.fn();
+				const { container } = render(<Prompt submitOnEnter={false} onEnter={handleEnter} mentionConfigs={defaultConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				editableDiv.textContent = 'Hello';
+				fireEvent.input(editableDiv);
+
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleEnter).not.toHaveBeenCalled();
+			});
+
+			it('inserts a newline character when pressing Enter', () => {
+				const handleChange = vi.fn();
+				const { container } = render(<Prompt submitOnEnter={false} onChange={handleChange} mentionConfigs={defaultConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				editableDiv.textContent = 'Hello';
+				fireEvent.input(editableDiv);
+
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				const lastCall = handleChange.mock.calls.at(-1);
+				expect(lastCall?.[0]).toContain('\n');
+			});
+
+			it('adds a trailing <br> so a newline at the end stays visible', () => {
+				const { container } = render(<Prompt submitOnEnter={false} mentionConfigs={defaultConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')! as HTMLElement;
+
+				editableDiv.textContent = 'Hello';
+				fireEvent.input(editableDiv);
+
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(editableDiv.querySelector('br')).toBeInTheDocument();
+				expect(editableDiv.textContent).toContain('\n');
+			});
+
+			it('still calls onEnter with Shift+Enter when submitOnEnter is false — no, Shift+Enter is unaffected', () => {
+				const handleEnter = vi.fn();
+				const { container } = render(<Prompt submitOnEnter={false} onEnter={handleEnter} mentionConfigs={defaultConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				fireEvent.keyDown(editableDiv, { key: 'Enter', shiftKey: true });
+
+				expect(handleEnter).not.toHaveBeenCalled();
+			});
+
+			it('still calls onEnter when submitOnEnter defaults to true', () => {
+				const handleEnter = vi.fn();
+				const { container } = render(<Prompt onEnter={handleEnter} mentionConfigs={defaultConfig} />);
+				const editableDiv = container.querySelector('[contenteditable="true"]')!;
+
+				editableDiv.textContent = 'Hello';
+				fireEvent.input(editableDiv);
+
+				fireEvent.keyDown(editableDiv, { key: 'Enter' });
+
+				expect(handleEnter).toHaveBeenCalledWith('Hello', []);
+			});
+		});
 	});
 
 	describe('Undo/Redo', () => {

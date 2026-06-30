@@ -28,6 +28,7 @@ export function useContentEditable({
 	onMentionDeleted,
 	onMentionClick,
 	mentionConfigs = DEFAULT_MENTION_CONFIG,
+	submitOnEnter = true,
 }: UseContentEditableOptions = {}): UseContentEditableReturn {
 	// Extract triggers for quick lookup
 	const triggers = useMemo(() => mentionConfigs.map(c => c.trigger), [mentionConfigs]);
@@ -219,6 +220,69 @@ export function useContentEditable({
 		[getElement, getValue, updateState, saveToHistory]
 	);
 
+	const insertNodeAtCursor = useCallback(
+		(node: Node, options?: { addTrailingBr?: boolean }) => {
+			const el = getElement();
+			if (!el) return;
+
+			// Focus the element if it's not already focused
+			if (document.activeElement !== el) {
+				el.focus();
+			}
+
+			const sel = SelectionUtils.get();
+			if (!sel) return;
+
+			// Get current selection/cursor position
+			let range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+
+			// If no range or selection is outside our element, position at the end
+			if (!range || !el.contains(range.commonAncestorContainer)) {
+				range = document.createRange();
+				// Position at the end of the content
+				if (el.lastChild) {
+					if (el.lastChild.nodeType === Node.TEXT_NODE) {
+						range.setStart(el.lastChild, el.lastChild.textContent?.length ?? 0);
+					} else {
+						range.setStartAfter(el.lastChild);
+					}
+				} else {
+					range.setStart(el, 0);
+				}
+				range.collapse(true);
+				sel.removeAllRanges();
+				sel.addRange(range);
+			}
+
+			// Delete any selected content first
+			if (!range.collapsed) {
+				range.deleteContents();
+			}
+
+			// Insert the node
+			range.insertNode(node);
+
+			// A trailing "\n" needs a <br> to render; treat an empty trailing text node as no content.
+			if (options?.addTrailingBr) {
+				const next = node.nextSibling;
+				const isAtEnd = !next || (next.nodeType === Node.TEXT_NODE && (next.textContent ?? "") === "");
+				if (isAtEnd) {
+					(node as ChildNode).after(document.createElement("br"));
+				}
+			}
+
+			// Move cursor to after the inserted node
+			range.setStartAfter(node);
+			range.collapse(true);
+			sel.removeAllRanges();
+			sel.addRange(range);
+
+			// Normalize the element to merge adjacent text nodes
+			el.normalize();
+		},
+		[getElement]
+	);
+
 	const onKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLDivElement>) => {
 			const isMac = navigator.platform.toUpperCase().includes("MAC");
@@ -326,13 +390,19 @@ export function useContentEditable({
 
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
-				const el = getElement();
-				const defaultTrigger = triggers[0] ?? "@";
-				const currentMentions = el ? MentionDOM.extractMentions(el, defaultTrigger) : [];
-				onEnterRef.current?.(getValue(), currentMentions);
+				if (submitOnEnter) {
+					const el = getElement();
+					const defaultTrigger = triggers[0] ?? "@";
+					const currentMentions = el ? MentionDOM.extractMentions(el, defaultTrigger) : [];
+					onEnterRef.current?.(getValue(), currentMentions);
+				} else {
+					insertNodeAtCursor(document.createTextNode("\n"), { addTrailingBr: true });
+					updateState(getValue());
+					saveToHistory();
+				}
 			}
 		},
-		[mentions, insertMention, handleBackspaceOnMention, handleUndo, handleRedo, handleAtomicMentionNavigation, getElement, triggers, getValue, clearMentionState]
+		[mentions, insertMention, handleBackspaceOnMention, handleUndo, handleRedo, handleAtomicMentionNavigation, getElement, triggers, getValue, clearMentionState, submitOnEnter, insertNodeAtCursor, updateState, saveToHistory]
 	);
 
 	const onKeyUp = useCallback(
@@ -525,62 +595,13 @@ export function useContentEditable({
 	 */
 	const insertText = useCallback(
 		(text: string) => {
-			const el = ref.current;
-			if (!el) return;
-
-			// Focus the element if it's not already focused
-			if (document.activeElement !== el) {
-				el.focus();
-			}
-
-			const sel = SelectionUtils.get();
-			if (!sel) return;
-
-			// Get current selection/cursor position
-			let range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
-
-			// If no range or selection is outside our element, position at the end
-			if (!range || !el.contains(range.commonAncestorContainer)) {
-				range = document.createRange();
-				// Position at the end of the content
-				if (el.lastChild) {
-					if (el.lastChild.nodeType === Node.TEXT_NODE) {
-						range.setStart(el.lastChild, el.lastChild.textContent?.length ?? 0);
-					} else {
-						range.setStartAfter(el.lastChild);
-					}
-				} else {
-					range.setStart(el, 0);
-				}
-				range.collapse(true);
-				sel.removeAllRanges();
-				sel.addRange(range);
-			}
-
-			// Delete any selected content first
-			if (!range.collapsed) {
-				range.deleteContents();
-			}
-
-			// Insert the text as a text node
-			const textNode = document.createTextNode(text);
-			range.insertNode(textNode);
-
-			// Move cursor to after the inserted text
-			range.setStartAfter(textNode);
-			range.collapse(true);
-			sel.removeAllRanges();
-			sel.addRange(range);
-
-			// Normalize the element to merge adjacent text nodes
-			el.normalize();
-
+			insertNodeAtCursor(document.createTextNode(text));
 			// Trigger the same logic as typing: update state, save history, check for mentions
 			updateState(getValue());
 			saveToHistory();
 			checkForMentionTrigger();
 		},
-		[getValue, updateState, saveToHistory, checkForMentionTrigger]
+		[insertNodeAtCursor, getValue, updateState, saveToHistory, checkForMentionTrigger]
 	);
 
 	return {
