@@ -1993,6 +1993,101 @@ const handleButtonSubmit = () => {
 	},
 };
 
+// -- submitOnEnter stories --
+
+const SubmitOnEnterShowcase = () => {
+	const [submittedDefault, setSubmittedDefault] = useState<string[]>([]);
+	const [submittedDisabled, setSubmittedDisabled] = useState<string[]>([]);
+
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="text-sm text-gray-600">
+				<p className="font-medium mb-1">
+					<code className="bg-gray-100 px-1 rounded">submitOnEnter</code> controls what the Enter key does
+				</p>
+				<p>Type a few words in each input and press Enter to compare the two behaviors.</p>
+			</div>
+
+			<div className="grid grid-cols-2 gap-4">
+				<div className="flex flex-col gap-2">
+					<h4 className="text-sm font-semibold text-green-700">
+						<code className="bg-green-50 px-1 rounded">{'submitOnEnter={true}'}</code> (default)
+					</h4>
+					<p className="text-xs text-gray-500">Enter submits — <code className="bg-gray-100 px-1 rounded">onEnter</code> fires and the input clears.</p>
+					<Prompt
+						placeholder="Type then press Enter to send..."
+						mentionConfigs={[{ trigger: '@', options: defaultOptions }]}
+						onEnter={(value) => {
+							if (!value.trim()) return;
+							setSubmittedDefault((prev) => [value, ...prev].slice(0, 5));
+						}}
+						clearOnEnter
+					/>
+					{submittedDefault.length > 0 ? (
+						<div className="p-3 rounded-lg bg-green-50 border border-green-200 text-xs">
+							<p className="font-semibold text-green-700 mb-1">Submitted (onEnter fired):</p>
+							{submittedDefault.map((msg, i) => (
+								<div key={i} className="font-mono text-green-800 truncate">{msg}</div>
+							))}
+						</div>
+					) : (
+						<p className="text-xs text-gray-400 italic">Press Enter to submit a message...</p>
+					)}
+				</div>
+
+				<div className="flex flex-col gap-2">
+					<h4 className="text-sm font-semibold text-blue-700">
+						<code className="bg-blue-50 px-1 rounded">{'submitOnEnter={false}'}</code>
+					</h4>
+					<p className="text-xs text-gray-500">Enter inserts a newline — <code className="bg-gray-100 px-1 rounded">onEnter</code> never fires.</p>
+					<Prompt
+						placeholder="Type and press Enter for new lines..."
+						mentionConfigs={[{ trigger: '@', options: defaultOptions }]}
+						submitOnEnter={false}
+						onEnter={(value) => {
+							if (!value.trim()) return;
+							setSubmittedDisabled((prev) => [value, ...prev].slice(0, 5));
+						}}
+					/>
+					{submittedDisabled.length > 0 ? (
+						<div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs">
+							<p className="font-semibold text-blue-700 mb-1">Submitted (onEnter fired):</p>
+							{submittedDisabled.map((msg, i) => (
+								<div key={i} className="font-mono text-blue-800 truncate">{msg}</div>
+							))}
+						</div>
+					) : (
+						<p className="text-xs text-gray-400 italic">Enter just adds a newline here — onEnter won't fire.</p>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+};
+
+export const SubmitOnEnter: Story = {
+	name: 'Submit on Enter (submitOnEnter)',
+	render: () => <SubmitOnEnterShowcase />,
+	parameters: {
+		docs: {
+			description: {
+				story: `The \`submitOnEnter\` prop controls what the Enter key does.
+
+- \`submitOnEnter={true}\` (default): pressing Enter fires \`onEnter\`. Combine with \`clearOnEnter\` for chat-style inputs.
+- \`submitOnEnter={false}\`: pressing Enter inserts a newline instead, so \`onEnter\` never fires. Useful for multiline prompts where Enter should not submit.
+
+\`\`\`tsx
+// Submit on Enter (default)
+<Prompt onEnter={(value) => sendMessage(value)} clearOnEnter />
+
+// Newline on Enter, never submits
+<Prompt submitOnEnter={false} onEnter={(value) => sendMessage(value)} />
+\`\`\``,
+			},
+		},
+	},
+};
+
 // ========== submitOnEnter Stories ==========
 
 const MultilineSubmitShowcase = () => {
